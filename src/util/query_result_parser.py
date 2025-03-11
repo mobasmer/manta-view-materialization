@@ -1,6 +1,6 @@
 import datetime
 import pandas as pd
-
+## SOURCE: EKG-BPIC17-CONCEPT-DRIFT-DETECTION-MULTI-PERSPECTIVE repository by Eva Klijn
 
 def transform_neo_duration(dataframe, column, unit='seconds'):
     for index, row in dataframe.iterrows():
