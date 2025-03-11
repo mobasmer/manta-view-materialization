@@ -4,7 +4,7 @@ import pandas as pd
 from ocpa.objects.log.importer.csv import factory as ocel_import_factory
 
 
-df = pd.read_csv('../data/BPI2017-Final-adapt.csv', sep=';', encoding='ISO-8859-1')
+df = pd.read_csv('../../data/BPI2017-Final-adapt.csv', sep=';', encoding='ISO-8859-1')
 
 def wrap_columns_in_list(input_file, output_file, column_names):
     """
@@ -31,7 +31,7 @@ def wrap_columns_in_list(input_file, output_file, column_names):
             writer.writerow(row)
 
 #filename = '../data/BPI2017-Final-adapt.csv'
-filename = '../data/Detail Change - wrapped.csv'
+filename = '../../data/Detail Change - wrapped.csv'
 object_types = ["CI Name (aff)", "CI Type (aff)", "CI Subtype (aff)", "Service Component WBS (aff)", "Change ID", "Risk Assessment", "Emergency Change", "CAB-approval needed"]
 #wrap_columns_in_list(filename, '../data/Detail Change - wrapped.csv', object_types)
 #object_types = ["offer", "application", "event_org:resource"]

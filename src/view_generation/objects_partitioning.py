@@ -11,7 +11,7 @@ import pm4py
 
 THRESHOLD = 2
 
-df = pd.read_csv('../data/BPI2017-Final.csv', sep=',', encoding='ISO-8859-1')
+df = pd.read_csv('../../data/BPI2017-Final.csv', sep=',', encoding='ISO-8859-1')
 df = df.head(10000)
 object_types = ["event_org:resource", "application", "offer"]
 tuple_id = "event_id"

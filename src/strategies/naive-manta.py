@@ -79,7 +79,7 @@ def jaccard_sim_edges(edges1, edges2):
         return 0
     return len(intersection) / (len(edges1) + len(edges2) - len(intersection))
 
-df = pd.read_csv('../data/BPI2017-Final.csv', sep=',', encoding='ISO-8859-1')
+df = pd.read_csv('../../data/BPI2017-Final.csv', sep=',', encoding='ISO-8859-1')
 smalldf = df.head(10)
 tuple_id = "event_id"
 attributes = list(df.columns)
