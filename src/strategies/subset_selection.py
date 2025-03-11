@@ -64,6 +64,9 @@ class SubsetSelector:
         selected_indices = []
         selected_results = []
 
+        if k >= len(self.views):
+            raise ValueError("k must be less than the number of views")
+
         for i in range(k):
             next_view = self.select_next_view(selected_indices)
             selected_indices.append(next_view[0])
