@@ -2,7 +2,7 @@ import datetime
 import json
 import time
 
-from ocpa.algo.predictive_monitoring.execution_based_features.extraction_functions import number_of_events
+#from ocpa.algo.predictive_monitoring.execution_based_features.extraction_functions import number_of_events
 
 from src.strategies.subset_selection import SubsetSelector
 from src.view_generation.leading_type import compute_edges_by_leading_type, \
@@ -10,8 +10,8 @@ from src.view_generation.leading_type import compute_edges_by_leading_type, \
 
 
 def main():
-    compute_views_for_bpi14_dataset()
-    #compute_views_for_ocel_dataset()
+    #compute_views_for_bpi14_dataset()
+    compute_views_for_ocel_dataset()
     #compute_views_for_ocel_dataset_sequence()
 
 # check that event ids are taken from the event log / assigned deterministically
@@ -52,7 +52,7 @@ def compute_views_for_bpi14_dataset():
 
 
 def compute_views_for_ocel_dataset():
-    filename = '../../data/order_ocel2/running-example.jsonocel'
+    filename = 'data/order-management.jsonocel'
     object_types = ["orders", "items", "packages", "customers", "products", "employees"]
 
     start_time = time.time()
@@ -83,7 +83,7 @@ def compute_views_for_ocel_dataset_sequence():
     return selected_views
 
 def get_stats_for_views(filename, selected_views, object_types, edges_leading_types, start_time, method, short_name, file_type="json"):
-    path = "../../results"
+    path = "results"
     result_json = {}
     result_json["filename"] = filename
     result_json["method"] = method
@@ -109,10 +109,12 @@ def get_stats_for_views(filename, selected_views, object_types, edges_leading_ty
         results_for_k["max_sim_to_prev"] = max_sim_to_prev
 
         number_of_events = sum([len(proc_exec) for proc_exec in ocel.process_executions])
-        results_for_k["avg_num_of_events_per_trace"] = number_of_events/len(ocel.process_executions)
+        # TODO wrong because of duplicates
+        results_for_k["num_of_events_covered"] = number_of_events
+        #results_for_k["avg_num_of_events_per_trace"] = number_of_events/len(ocel.process_executions)
         result_json["selected_views"].append(results_for_k)
 
-    file_id = str(datetime.datetime.now)
+    file_id = str(datetime.datetime.now())
 
     with open(f"{path}/{file_id}_results_{short_name}_{method}.json", "w") as f:
         json.dump(result_json, f)

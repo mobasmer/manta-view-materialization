@@ -38,6 +38,8 @@ def compute_edges_by_leading_type(filename, file_type="json", object_types=None,
             relation.update(proc_exec_graph.edges)
         edges_leading_types.append((i, relation))
 
+    # add connected component edges as well ?
+
     return edges_leading_types
 
 def compute_edges_by_leading_type_sequence_encoding(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
