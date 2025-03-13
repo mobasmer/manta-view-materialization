@@ -1,8 +1,15 @@
+import concurrent.futures
+import logging
+
 from networkx.classes import edges
 from ocpa.objects.log.importer.csv import factory as csv_import_factory
 from ocpa.objects.log.importer.ocel import factory as ocel_import_factory
 from ocpa.algo.predictive_monitoring import tabular, sequential
 from ocpa.algo.predictive_monitoring import factory as predictive_monitoring
+from tqdm import tqdm
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+
 
 def get_ocel_from_csv(filename, leading_type, object_types, act_name, time_name, sep):
     parameters = {
@@ -48,25 +55,53 @@ def compute_edges_by_leading_type(filename, file_type="json", object_types=None,
     @return: list of tuples (index, relation_index, number of process executions) for each leading type
 '''
 def compute_indices_by_leading_type(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
-    edges_leading_types = []
+    relation_indices = []
 
-    for i, obj_type in enumerate(object_types):
+    for i, obj_type in tqdm(enumerate(object_types), desc="Preparing relation indices for leading types"):
+        tqdm.write(f"Start loading: {obj_type}")
         ocel = load_ocel_by_leading_type(filename, obj_type, file_type, object_types, act_name, time_name, sep)
-        print("done loading", obj_type)
-        relation_index = dict()
+        tqdm.write(f"Done loading: {obj_type}")
 
-        for j, proc_exec in enumerate(ocel.process_executions):
-            proc_exec_graph = ocel.get_process_execution_graph(j)
-            for edge in proc_exec_graph.edges:
-                if edge in relation_index:
-                    relation_index[edge].append(j)
-                else:
-                    relation_index[edge] = [j]
-        edges_leading_types.append((i, relation_index, len(ocel.process_executions)))
+        tqdm.write(f"Start building relation index for {obj_type}")
+        relation_index = get_relation_index(ocel)
+        relation_indices.append((i, relation_index, len(ocel.process_executions)))
+        tqdm.write(f"Finished building relation index for {obj_type}")
 
-    # add connected component edges as well ?
+    # TODO: add connected component edges as well ?
 
-    return edges_leading_types
+    return relation_indices
+
+def compute_indices_by_leading_type_parallel(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
+    def process_object_type(i, obj_type):
+        logging.info(f"Start loading: {obj_type}")
+        ocel = load_ocel_by_leading_type(filename, obj_type, file_type, object_types, act_name, time_name, sep)
+        logging.info(f"Done loading: {obj_type}")
+
+        logging.info(f"Start building relation index for {obj_type}")
+        relation_index = get_relation_index(ocel)
+        logging.info(f"Finished building relation index for {obj_type}")
+        return i, relation_index, len(ocel.process_executions)
+
+    relation_indices = []
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        futures = [executor.submit(process_object_type, i, obj_type) for i, obj_type in enumerate(object_types)]
+        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
+                           desc="Collecting relation indices"):
+            relation_indices.append(future.result())
+
+    return relation_indices
+
+def get_relation_index(ocel):
+    relation_index = dict()
+    for j, proc_exec in enumerate(ocel.process_executions):
+        proc_exec_graph = ocel.get_process_execution_graph(j)
+        for edge in proc_exec_graph.edges:
+            if edge in relation_index:
+                relation_index[edge].append(j)
+            else:
+                relation_index[edge] = [j]
+    return relation_index
 
 def compute_edges_by_leading_type_sequence_encoding(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
     edges_leading_types = []
