@@ -6,7 +6,7 @@ def wrap_columns_in_list(input_file, output_file, column_names):
     Reads a CSV file, wraps each value in the specified column in a list, and saves it back as a new CSV file.
     """
     with open(input_file, mode='r', newline='', encoding='utf-8') as infile:
-        reader = csv.DictReader(infile, delimiter=';')
+        reader = csv.DictReader(infile, delimiter=',')
         fieldnames = reader.fieldnames
 
         for column_name in column_names:
@@ -24,3 +24,6 @@ def wrap_columns_in_list(input_file, output_file, column_names):
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
+
+if __name__ == '__main__':
+    wrap_columns_in_list('../../data/BPI2017-Final-adapt.csv', '../../data/BPI2017-Final-adapt.csv', ['event_EventID'])
