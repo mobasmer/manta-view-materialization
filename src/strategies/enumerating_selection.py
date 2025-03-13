@@ -1,3 +1,4 @@
+import concurrent.futures
 import itertools
 import time
 
@@ -34,10 +35,41 @@ class EnumeratingSubsetSelector(SubsetSelector):
 
         end_time = time.time()
         for sel in best_view_set:
+            max_sim = None
             for sel2 in best_view_set:
                 if sel == sel2:
                     continue
                 max_sim = max([self.__get_score__(sel[0], sel2[0]) for sel in best_view_set])
 
             selected_results.append((sel[0], best_score, max_sim, end_time))
+        return selected_results
+
+    def select_view_indices_in_parallel(self, k):
+        if k > len(self.views):
+            raise ValueError("k must be less than the number of views")
+
+        def evaluate_subset(subset):
+            sum_sim = 0
+            for view in self.views:
+                nearest_score = max([self.__get_score__(view[0], sel[0]) for sel in subset])
+                sum_sim += nearest_score
+            return sum_sim, subset
+
+        best_view_set = None
+        best_score = 0
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            futures = [executor.submit(evaluate_subset, subset) for subset in itertools.combinations(self.views, k)]
+            for future in concurrent.futures.as_completed(futures):
+                sum_sim, subset = future.result()
+                if sum_sim > best_score:
+                    best_score = sum_sim
+                    best_view_set = subset
+
+        end_time = time.time()
+        selected_results = []
+        for sel in best_view_set:
+            max_sim = max([self.__get_score__(sel[0], sel2[0]) for sel2 in best_view_set if sel != sel2])
+            selected_results.append((sel[0], best_score, max_sim, end_time))
+
         return selected_results
