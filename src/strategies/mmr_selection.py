@@ -27,7 +27,7 @@ class RankingSubsetSelector(SubsetSelector):
     def select_next_view(self, sel_indices):
         max_score = -2
         next_view = None
-        max_sim_to_prev = None
+        info_scores = {}
         if len(sel_indices) == 0:
             # in first step, just choose view with best overall score
             # for i, score in enumerate(self.overall_scores):
@@ -35,18 +35,31 @@ class RankingSubsetSelector(SubsetSelector):
                 if score > max_score:
                     max_score = score
                     next_view = i
+                    info_scores = {
+                        "sim_score": score,
+                        "mmr_score": score,
+                        "max_sim_to_prev": None,
+                        "min_sim_to_prev": None,
+                        "avg_sim_to_prev": None}
         else:
             # compute MMR score for each view and choose the one with the highest score
-            for i, view, _ in self.views:
-                if i not in sel_indices:
-                    similarities = [self.__get_score__(i, j) for j in sel_indices]
+            for view_dict in self.views:
+                idx = view_dict["view_idx"]
+                if idx not in sel_indices:
+                    similarities = [self.__get_score__(idx, j) for j in sel_indices]
                     max_sim_to_prev = max(similarities)
-                    #mmr_score = self.weight * self.overall_scores[i][1] - (1 - self.weight) * max_sim_to_prev
-                    mmr_score = self.weight * self.overall_scores[i] - (1 - self.weight) * max_sim_to_prev
+                    mmr_score = self.weight * self.overall_scores[idx] - (1 - self.weight) * max_sim_to_prev
                     if mmr_score > max_score:
                         max_score = mmr_score
-                        next_view = i
-        return next_view, max_score, max_sim_to_prev
+                        next_view = idx
+                        info_scores = {
+                            "sim_score": self.overall_scores[idx],
+                            "mmr_score": mmr_score,
+                            "max_sim_to_prev": max(similarities),
+                            "min_sim_to_prev": min(similarities),
+                            "avg_sim_to_prev": sum(similarities) / len(similarities)
+                        }
+        return next_view, max_score, info_scores
 
     '''
     @param k: number of views to select
