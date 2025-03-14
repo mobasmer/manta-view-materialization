@@ -15,10 +15,9 @@ class RankingSubsetSelector(SubsetSelector):
 
     Initializes the SubsetSelector with the given views and computes the similarity scores.
     """
-    def __init__(self, views, weight=0.5, similarity_function=jaccard_sim_edges, parallel=False):
-        super().__init__(views, similarity_function, parallel)
+    def __init__(self, views, weight=0.5, similarity_function=jaccard_sim_edges, parallel=False, object_types=None):
+        super().__init__(views, similarity_function, parallel, object_types)
         self.weight = weight
-
 
     '''
         Gets next best view to select based on adapted MMR score.

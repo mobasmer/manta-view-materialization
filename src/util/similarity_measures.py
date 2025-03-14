@@ -67,3 +67,9 @@ def matching_similarities(view_info, other_view_info):
     sum_sim = np.sum(np.max(sim_values, axis=1)) + np.sum(np.max(sim_values, axis=0))
 
     return sum_sim / (num_view + num_other_view)
+
+def compute_matching_sim(view_dict, other_dict):
+    sim = matching_similarities((view_dict["relation_index"], view_dict["num_proc_exec"]),
+                             (other_dict["relation_index"], other_dict["num_proc_exec"]))
+
+    return sim, view_dict["view_idx"], other_dict["view_idx"]

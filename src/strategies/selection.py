@@ -5,16 +5,18 @@ from abc import abstractmethod
 import numpy as np
 from tqdm import tqdm
 
-from src.util.similarity_measures import jaccard_sim_edges
+from src.util.similarity_measures import jaccard_sim_edges, compute_matching_sim, matching_similarities
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 class SubsetSelector:
-    def __init__(self, views, similarity_function=jaccard_sim_edges, parallel=False):
-        self.views = views
+    def __init__(self, similarity_function=matching_similarities, parallel=False, object_types=None):
+    #def __init__(self, views, similarity_function=jaccard_sim_edges, parallel=False, object_types=None):
+        #self.views = views
         self.overall_scores = [-1 for _ in range(len(views))]
         self.pairwise_score = np.full((len(views),len(views)), fill_value = -1, dtype = float)
         self.similarity_function = similarity_function
+        self.object_types = object_types
         if parallel:
             self.compute_scores_parallel()
         else:
@@ -28,6 +30,22 @@ class SubsetSelector:
         return self.pairwise_score[v1][v2]
 
         #
+
+    """
+    Computes the similarity score between two views.
+
+        @param i: index of first view in view list 
+        @param j: index of second view in view list
+        @return: similarity score and indices of views
+    """
+
+    def compute_similarity(self, i, j):
+        view_dict = self.views[i]
+        other_dict = self.views[j]
+        sim = self.similarity_function((view_dict["relation_index"], view_dict["num_proc_exec"]),
+                                       (other_dict["relation_index"], other_dict["num_proc_exec"]))
+        return sim, view_dict["view_idx"], other_dict["view_idx"]
+
     """
     Computes the similarity score between two views.
     
@@ -53,7 +71,8 @@ class SubsetSelector:
                 if i == j:
                     self.pairwise_score[i][i] = 1
                 else:
-                    sim, i_idx, j_idx = self.compute_similarity(i, j)
+                    #sim, i_idx, j_idx = self.compute_similarity(i, j)
+                    sim, i_idx, j_idx = self.compute_similarity_io(i, j)
                     self.pairwise_score[i_idx][j_idx] = sim
                     self.pairwise_score[j_idx][i_idx] = sim
 
@@ -73,7 +92,9 @@ class SubsetSelector:
 
     ## TODO: make more space efficient by using immutable, shared memory?
         with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
-            futures = [executor.submit(self.compute_similarity, i, j) for i in range(n) for j in range(i + 1, n)]
+            view_pairs = [(self.views[i], self.views[j]) for i in range(n) for j in range(i + 1, n)]
+            # futures = [executor.submit(self.compute_similarity, i, j) for i in range(n) for j in range(i + 1, n)]
+            futures = [executor.submit(compute_matching_sim, view_i, view_j) for view_i, view_j in view_pairs]
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
                                desc="Computing pairwise similarities"):
                 sim, i_idx, j_idx = future.result()

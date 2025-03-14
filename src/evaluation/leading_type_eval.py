@@ -7,9 +7,12 @@ import logging
 
 from src.strategies.enumerating_selection import EnumeratingSubsetSelector
 from src.strategies.mmr_selection import RankingSubsetSelector
+from src.strategies.selection_db import DBRankingSubsetSelector
 from src.util.similarity_measures import matching_similarities
 from src.view_generation.leading_type_views import load_ocel_by_leading_type, compute_indices_by_leading_type, \
     compute_indices_by_leading_type_parallel
+from src.view_generation.leading_type_views_db import compute_indices_by_leading_type_db, \
+    compute_indices_by_leading_type_parallel_db
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -19,7 +22,7 @@ def main(args):
     elif args.dataset == "bpi14":
         compute_views_for_bpi14(selection_method=args.selection_method)
     elif args.dataset == "order":
-        compute_views_for_order_management(k=2, selection_method=args.selection_method)
+        compute_views_for_order_management(k=2, selection_method=args.selection_method, parallel=True)
     else:
         print("Unknown dataset")
 
@@ -40,17 +43,23 @@ def compute_views(filename, object_types, short_name, file_type="json", params=N
     if file_type == "csv":
         indices_leading_types = compute_indices_by_leading_type(filename, file_type=file_type, object_types=object_types, act_name=params["act_name"], time_name=params["time_name"], sep=params["sep"])
     else:
-       indices_leading_types = compute_indices_by_leading_type_parallel(filename, file_type=file_type, object_types=object_types)
+        pass
+       #indices_leading_types = compute_indices_by_leading_type_parallel(filename, file_type=file_type, object_types=object_types)
        #indices_leading_types = compute_indices_by_leading_type(filename, file_type=file_type,
        #                                                                 object_types=object_types)
+       # indices_leading_types = compute_indices_by_leading_type_parallel_db(filename, file_type=file_type, object_types=object_types)
     logging.info("Done computing indices by leading type")
 
-    with open(f"data/temp/{short_name}_indices.pkl", "wb") as file:
-        pickle.dump(indices_leading_types, file)
+    #for index in indices_leading_types:
+    #    obj_type = object_types[index["view_idx"]]
+    #    with open(f"data/temp/{short_name}_indices_{obj_type}_{index['view_idx']}.pkl", "wb") as file:
+    #        pickle.dump(indices_leading_types, file)
 
     if selection_method == "mmr":
+        logging.info("Initializing ranking subset selector - computing scores")
+        #ranking_subset_selection = RankingSubsetSelector(views=indices_leading_types, weight=weight, similarity_function=matching_similarities, parallel=parallel, object_types=object_types)
+        ranking_subset_selection = DBRankingSubsetSelector(db_name="leading_type_views.db", object_types=object_types, similarity_function=matching_similarities)
         logging.info("Selecting views by mmr")
-        ranking_subset_selection = RankingSubsetSelector(views=indices_leading_types, weight=weight, similarity_function=matching_similarities, parallel=parallel)
         selected_views = ranking_subset_selection.select_view_indices(k)
     else:
         logging.info("Selecting views by enumeration")
@@ -101,8 +110,8 @@ def compute_views_for_bpi14(k=7, weight=0.5, sequence=False, selection_method="m
 
 def compute_views_for_order_management(k=5, weight=0.5, sequence=False, selection_method="mmr", parallel=False):
     filename = 'data/order-management.jsonocel'
-    #object_types = ["orders", "items", "packages", "customers", "products"]
-    object_types = ["customers", "products"]#, "packages"]
+    object_types = ["orders", "items", "packages", "customers", "products"]
+    #object_types = ["customers", "products"]#, "packages"]
 
     assert k <= len(object_types), "k must be less than the number of object types"
     compute_views(filename, object_types, "Order", k=k, weight=weight, sequence=sequence, selection_method=selection_method, parallel=parallel)
