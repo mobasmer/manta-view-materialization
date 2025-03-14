@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 relation_indices_precomputed = False
 counts_precomputed = False
-remove_db = False
+remove_db = True
 
 def main(args):
     if args.dataset == "bpi17":
@@ -51,12 +51,12 @@ def compute_views(filename, object_types, short_name, file_type="json", params=N
                                                       counts_precomputed=counts_precomputed, weight=weight)
     logging.info("Selecting views by mmr")
     selected_views = ranking_subset_selection.select_view_indices(k)
-
+    end_time = time.time()
 
     print(selected_views)
     logging.info("Computing stats for evaluation")
     get_stats_for_views(filename, selected_views, object_types, db_name, start_time,
-                        f"{selection_method}-leading-type", short_name)
+                        f"{selection_method}-leading-type", short_name, runtime=end_time-start_time)
 
     print(selected_views)
 
@@ -113,7 +113,7 @@ def compute_views_for_order_management(k=5, weight=0.5, selection_method="mmr"):
     compute_views(filename, object_types, "Order", k=k, weight=weight, selection_method=selection_method)
 
 
-def get_stats_for_views(filename, selected_views, object_types, db_name, start_time, method, short_name):
+def get_stats_for_views(filename, selected_views, object_types, db_name, start_time, method, short_name, runtime=None):
     view_infos = None
     with duckdb.connect(db_name) as con:
         view_infos = con.sql("SELECT * FROM viewmeta").fetchdf()
@@ -124,6 +124,8 @@ def get_stats_for_views(filename, selected_views, object_types, db_name, start_t
     result_json = {}
     result_json["filename"] = filename
     result_json["method"] = method
+    if runtime is not None:
+        result_json["runtime"] = runtime
     result_json["selected_views"] = []
     for k, res_tuple in enumerate(selected_views):
         obj_idx, score, score_info, finish_time = res_tuple

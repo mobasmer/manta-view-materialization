@@ -43,7 +43,7 @@ class DBSubsetSelector:
 
             logging.info("Done computing counts")
             n = len(self.object_types)
-            for i in tqdm(range(n), description("Computing pairwise scores")):
+            for i in tqdm(range(n), desc=("Computing pairwise scores")):
                 for j in tqdm(range(i, n)):
                     if i == j:
                         self.pairwise_score[i][i] = 1
