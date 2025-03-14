@@ -11,7 +11,7 @@ from src.strategies.db_mmr_selection import DBRankingSubsetSelector
 from src.view_generation.leading_type_views_db import compute_indices_by_leading_type_db
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-relation_indices_precomputed = True
+relation_indices_precomputed = False
 counts_precomputed = False
 remove_db = True
 
