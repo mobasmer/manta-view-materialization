@@ -146,7 +146,7 @@ def get_stats_for_views(filename, selected_views, object_types, indices_leading_
     file_id = str(datetime.datetime.now())
 
     with open(f"{path}/{file_id}_results_{short_name}_{method}.json", "w") as f:
-        json.dump(result_json, f)
+        json.dump(result_json, f, indent=4)
 
 
 if __name__ == "__main__":
