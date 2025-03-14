@@ -1,4 +1,5 @@
 import argparse
+import pickle
 from datetime import datetime
 import json
 import time
@@ -18,7 +19,7 @@ def main(args):
     elif args.dataset == "bpi14":
         compute_views_for_bpi14(selection_method=args.selection_method)
     elif args.dataset == "order":
-        compute_views_for_order_management(selection_method=args.selection_method)
+        compute_views_for_order_management(k=2, selection_method=args.selection_method)
     else:
         print("Unknown dataset")
 
@@ -33,7 +34,7 @@ def parse_args():
     return parser.parse_args()
 
 # TODO: check that event ids are taken from the event log / assigned deterministically
-def compute_views(filename, object_types, short_name, file_type="json", params=None, k=2, weight=0.5, sequence=False, selection_method="mmr"):
+def compute_views(filename, object_types, short_name, file_type="json", params=None, k=2, weight=0.5, sequence=False, selection_method="mmr", parallel=False):
     start_time = time.time()
 
     if file_type == "csv":
@@ -44,9 +45,12 @@ def compute_views(filename, object_types, short_name, file_type="json", params=N
        #                                                                 object_types=object_types)
     logging.info("Done computing indices by leading type")
 
+    with open(f"data/temp/{short_name}_indices.pkl", "wb") as file:
+        pickle.dump(indices_leading_types, file)
+
     if selection_method == "mmr":
         logging.info("Selecting views by mmr")
-        ranking_subset_selection = RankingSubsetSelector(views=indices_leading_types, weight=weight, similarity_function=matching_similarities)
+        ranking_subset_selection = RankingSubsetSelector(views=indices_leading_types, weight=weight, similarity_function=matching_similarities, parallel=parallel)
         selected_views = ranking_subset_selection.select_view_indices(k)
     else:
         logging.info("Selecting views by enumeration")
@@ -56,11 +60,11 @@ def compute_views(filename, object_types, short_name, file_type="json", params=N
     print(selected_views)
     logging.info("Computing stats for evaluation")
     get_stats_for_views(filename, selected_views, object_types, indices_leading_types, start_time, f"{selection_method}-leading-type",
-                        short_name, file_type=file_type)
+                        short_name)
 
     print(selected_views)
 
-def compute_views_for_bpi17(k=4, weight=0.5, sequence=False, selection_method="mmr"):
+def compute_views_for_bpi17(k=4, weight=0.5, sequence=False, selection_method="mmr", parallel=False):
     filename = 'data/BPIC17.jsonocel'
     object_types = [
         "Application",
@@ -73,7 +77,7 @@ def compute_views_for_bpi17(k=4, weight=0.5, sequence=False, selection_method="m
     compute_views(filename, object_types, "BPI17", k=k, weight=weight, sequence=sequence, selection_method=selection_method)
 
 
-def compute_views_for_bpi17_csv(k=4, weight=0.5, sequence=False, selection_method="mmr"):
+def compute_views_for_bpi17_csv(k=4, weight=0.5, sequence=False, selection_method="mmr", parallel=False):
     filename = 'data/BPI2017-Final-adapt.csv'
     object_types = ["offer", "application", "event_org:resource", "event_EventID"]
 
@@ -84,28 +88,27 @@ def compute_views_for_bpi17_csv(k=4, weight=0.5, sequence=False, selection_metho
     }
 
     assert k <= len(object_types), "k must be less than the number of object types"
-    compute_views(filename, object_types, "BPI17csv", file_type="csv", params=parameters, k=k, weight=weight, sequence=sequence, selection_method=selection_method)
+    compute_views(filename, object_types, "BPI17csv", file_type="csv", params=parameters, k=k, weight=weight, sequence=sequence, selection_method=selection_method, parallel=parallel)
 
 
-def compute_views_for_bpi14(k=7, weight=0.5, sequence=False, selection_method="mmr"):
+def compute_views_for_bpi14(k=7, weight=0.5, sequence=False, selection_method="mmr", parallel=False):
     filename = 'data/BPIC14.jsonocel'
     object_types = ["ConfigurationItem", "ServiceComponent", "Incident", "Interaction", "Change", "Case_R", "KM"]
 
     assert k <= len(object_types), "k must be less than the number of object types"
-    compute_views(filename, object_types, "BPI14", k=k, weight=weight, sequence=sequence)
+    compute_views(filename, object_types, "BPI14", k=k, weight=weight, sequence=sequence, selection_method=selection_method, parallel=parallel)
 
 
-def compute_views_for_order_management(k=5, weight=0.5, sequence=False, selection_method="mmr"):
+def compute_views_for_order_management(k=5, weight=0.5, sequence=False, selection_method="mmr", parallel=False):
     filename = 'data/order-management.jsonocel'
-    object_types = ["orders", "items", "packages", "customers", "products"]
-    #object_types = ["customers", "products", "packages"]
+    #object_types = ["orders", "items", "packages", "customers", "products"]
+    object_types = ["customers", "products"]#, "packages"]
 
     assert k <= len(object_types), "k must be less than the number of object types"
-    compute_views(filename, object_types, "Order", k=k, weight=weight, sequence=sequence, selection_method=selection_method)
+    compute_views(filename, object_types, "Order", k=k, weight=weight, sequence=sequence, selection_method=selection_method, parallel=parallel)
 
 
-def get_stats_for_views(filename, selected_views, object_types, indices_leading_types, start_time, method, short_name,
-                        file_type="json"):
+def get_stats_for_views(filename, selected_views, object_types, indices_leading_types, start_time, method, short_name):
     path = "results"
     result_json = {}
     result_json["filename"] = filename

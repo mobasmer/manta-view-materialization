@@ -71,6 +71,7 @@ def compute_indices_by_leading_type(filename, file_type="json", object_types=Non
 
     return relation_indices
 
+#def process_object_type(i, obj_type, filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
 def process_object_type(i, obj_type, filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
     logging.info(f"Start loading: {obj_type}")
     ocel = load_ocel_by_leading_type(filename, obj_type, file_type, object_types, act_name, time_name, sep)
@@ -106,7 +107,7 @@ def get_relation_index(ocel):
 def compute_indices_by_leading_type_parallel(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
     relation_indices = []
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(process_object_type, i, obj_type, filename) for i, obj_type in enumerate(object_types)]
         for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
                            desc="Collecting relation indices"):

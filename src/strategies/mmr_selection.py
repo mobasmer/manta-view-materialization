@@ -15,8 +15,8 @@ class RankingSubsetSelector(SubsetSelector):
 
     Initializes the SubsetSelector with the given views and computes the similarity scores.
     """
-    def __init__(self, views, weight=0.5, similarity_function=jaccard_sim_edges):
-        super().__init__(views, similarity_function)
+    def __init__(self, views, weight=0.5, similarity_function=jaccard_sim_edges, parallel=False):
+        super().__init__(views, similarity_function, parallel)
         self.weight = weight
 
 
