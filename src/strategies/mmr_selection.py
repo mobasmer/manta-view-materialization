@@ -30,17 +30,19 @@ class RankingSubsetSelector(SubsetSelector):
         max_sim_to_prev = None
         if len(sel_indices) == 0:
             # in first step, just choose view with best overall score
-            for i, score in self.overall_scores:
+            # for i, score in enumerate(self.overall_scores):
+            for i, score in enumerate(self.overall_scores):
                 if score > max_score:
                     max_score = score
                     next_view = i
         else:
             # compute MMR score for each view and choose the one with the highest score
-            for i, view in self.views:
+            for i, view, _ in self.views:
                 if i not in sel_indices:
                     similarities = [self.__get_score__(i, j) for j in sel_indices]
                     max_sim_to_prev = max(similarities)
-                    mmr_score = self.weight * self.overall_scores[i][1] - (1 - self.weight) * max_sim_to_prev
+                    #mmr_score = self.weight * self.overall_scores[i][1] - (1 - self.weight) * max_sim_to_prev
+                    mmr_score = self.weight * self.overall_scores[i] - (1 - self.weight) * max_sim_to_prev
                     if mmr_score > max_score:
                         max_score = mmr_score
                         next_view = i
