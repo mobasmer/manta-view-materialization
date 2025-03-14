@@ -1,7 +1,10 @@
+import argparse
 import datetime
 import json
 import time
 import logging
+
+from scipy.stats import argus
 
 from src.strategies.enumerating_selection import EnumeratingSubsetSelector
 from src.strategies.mmr_selection import RankingSubsetSelector
@@ -11,13 +14,25 @@ from src.view_generation.leading_type_views import load_ocel_by_leading_type, co
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-def main():
-    #compute_views_for_bpi17_csv()
-    #compute_views_for_bpi14()
-    compute_views_for_order_management()
-    #compute_views_for_order_management(sequence=True)
-    #compute_views_for_order_management()
+def main(args):
+    if args.dataset == "bpi17":
+        compute_views_for_bpi17(selection_method=args.selection_method)
+    elif args.dataset == "bpi14":
+        compute_views_for_bpi14(selection_method=args.selection_method)
+    elif args.dataset == "order":
+        compute_views_for_order_management(selection_method=args.selection_method)
+    else:
+        print("Unknown dataset")
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Compute views for different datasets.")
+    parser.add_argument("--dataset", type=str, required=True,
+                        help="Dataset to compute views for (bpi17, bpi14, order)")
+    parser.add_argument("--k", type=int, default=4, help="Number of views to select")
+    parser.add_argument("--weight", type=float, default=0.5, help="Weight for MMR selection")
+    parser.add_argument("--sequence", action="store_true", help="Whether to use sequence-based selection")
+    parser.add_argument("--selection_method", type=str, default="mmr", help="Selection method (mmr or enumeration)")
+    return parser.parse_args()
 
 # TODO: check that event ids are taken from the event log / assigned deterministically
 def compute_views(filename, object_types, short_name, file_type="json", params=None, k=2, weight=0.5, sequence=False, selection_method="mmr"):
@@ -54,7 +69,7 @@ def compute_views_for_bpi17(k=4, weight=0.5, sequence=False, selection_method="m
         "Offer",
         "Case_R"
     ]
-    compute_views(filename, object_types, "BPI17", k=k, weight=weight, sequence=sequence)
+    compute_views(filename, object_types, "BPI17", k=k, weight=weight, sequence=sequence, selection_method=selection_method)
 
 
 def compute_views_for_bpi17_csv(k=4, weight=0.5, sequence=False, selection_method="mmr"):
@@ -67,11 +82,11 @@ def compute_views_for_bpi17_csv(k=4, weight=0.5, sequence=False, selection_metho
         "sep": ',',
     }
 
-    compute_views(filename, object_types, "BPI17csv", file_type="csv", params=parameters, k=k, weight=weight, sequence=sequence)
+    compute_views(filename, object_types, "BPI17csv", file_type="csv", params=parameters, k=k, weight=weight, sequence=sequence, selection_method=selection_method)
 
 
 def compute_views_for_bpi14(k=7, weight=0.5, sequence=False, selection_method="mmr"):
-    filename = '../../data/bpi14/BPIC14.jsonocel'
+    filename = 'data/BPIC14.jsonocel'
     object_types = ["ConfigurationItem", "ServiceComponent", "Incident", "Interaction", "Change", "Case_R", "KM"]
     compute_views(filename, object_types, "BPI14", k=k, weight=weight, sequence=sequence)
 
@@ -79,11 +94,11 @@ def compute_views_for_bpi14(k=7, weight=0.5, sequence=False, selection_method="m
 def compute_views_for_order_management(k=5, weight=0.5, sequence=False, selection_method="mmr"):
     filename = 'data/order-management.jsonocel'
     object_types = ["orders", "items", "packages", "customers", "products"]
-    #object_types = ["orders", "packages"]
-    compute_views(filename, object_types, "Order", k=5, weight=weight, sequence=sequence)
+    #object_types = ["customers", "products", "items"]
+    compute_views(filename, object_types, "Order", k=k, weight=weight, sequence=sequence, selection_method=selection_method)
 
 
-def get_stats_for_views(filename, selected_views, object_types, edges_leading_types, start_time, method, short_name,
+def get_stats_for_views(filename, selected_views, object_types, indices_leading_types, start_time, method, short_name,
                         file_type="json"):
     path = "results"
     result_json = {}
@@ -107,20 +122,22 @@ def get_stats_for_views(filename, selected_views, object_types, edges_leading_ty
         # Level of detail (LoD) (Eq. 2): average number of unique activities per trace
         # Average number of events (AE) (Eq. 3): average number of events per trace:
         num_proc_exec = len(ocel.process_executions)
+        print(num_proc_exec, indices_leading_types[obj_idx][2])
         results_for_k["object_type"] = obj_t
-        results_for_k["num_process_executions"] = num_proc_exec
+        results_for_k["num_process_executions"] = indices_leading_types[obj_idx][2],
         #results_for_k["num_variants"] = len(ocel.variants())
-        results_for_k["num_edges"] = len(edges_leading_types[obj_idx][1])
+        results_for_k["num_edges"] = len(indices_leading_types[obj_idx][1])
         results_for_k["score"] = score
         results_for_k["time"] = time - start_time
         results_for_k["position"] = k
         results_for_k["max_sim_to_prev"] = max_sim_to_prev
 
         events_covered = set()
-        for edge in edges_leading_types[obj_idx][1]:
+        for edge in indices_leading_types[obj_idx][1]:
             events_covered.add(edge[0])
             events_covered.add(edge[1])
 
+        # TODO: compute and store with indices when building indices, so no need to reload ocel
         number_of_events = sum([len(proc_exec) for proc_exec in ocel.process_executions])
         results_for_k["num_of_events_covered"] = len(events_covered)
         results_for_k["avg_num_of_events_per_trace"] = number_of_events / num_proc_exec if num_proc_exec > 0 else 0
@@ -133,4 +150,5 @@ def get_stats_for_views(filename, selected_views, object_types, edges_leading_ty
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args)
