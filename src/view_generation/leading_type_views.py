@@ -71,26 +71,26 @@ def compute_indices_by_leading_type(filename, file_type="json", object_types=Non
 
     return relation_indices
 
-def compute_indices_by_leading_type_parallel(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
-    def process_object_type(i, obj_type):
-        logging.info(f"Start loading: {obj_type}")
-        ocel = load_ocel_by_leading_type(filename, obj_type, file_type, object_types, act_name, time_name, sep)
-        logging.info(f"Done loading: {obj_type}")
+def process_object_type(i, obj_type, filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
+    logging.info(f"Start loading: {obj_type}")
+    ocel = load_ocel_by_leading_type(filename, obj_type, file_type, object_types, act_name, time_name, sep)
+    logging.info(f"Done loading: {obj_type}")
 
-        logging.info(f"Start building relation index for {obj_type}")
-        relation_index = get_relation_index(ocel)
-        logging.info(f"Finished building relation index for {obj_type}")
-        return i, relation_index, len(ocel.process_executions)
+    logging.info(f"Start building relation index for {obj_type}")
+    relation_index = get_relation_index(ocel)
+    logging.info(f"Finished building relation index for {obj_type}")
 
-    relation_indices = []
+    num_proc_exec = len(ocel.process_executions)
+    num_of_events = sum([len(proc_exec) for proc_exec in ocel.process_executions])
+    avg_num_of_events_per_trace = num_of_events / num_proc_exec if num_proc_exec > 0 else 0
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-        futures = [executor.submit(process_object_type, i, obj_type) for i, obj_type in enumerate(object_types)]
-        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
-                           desc="Collecting relation indices"):
-            relation_indices.append(future.result())
-
-    return relation_indices
+    return {
+        "view_idx": i,
+        "relation_index": relation_index,
+        "num_proc_exec": num_proc_exec,
+        "num_of_events": num_of_events,
+        "avg_num_of_events_per_trace": avg_num_of_events_per_trace
+    }
 
 def get_relation_index(ocel):
     relation_index = dict()
@@ -102,6 +102,17 @@ def get_relation_index(ocel):
             else:
                 relation_index[edge] = [j]
     return relation_index
+
+def compute_indices_by_leading_type_parallel(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
+    relation_indices = []
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+        futures = [executor.submit(process_object_type, i, obj_type, filename) for i, obj_type in enumerate(object_types)]
+        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
+                           desc="Collecting relation indices"):
+            relation_indices.append(future.result())
+
+    return relation_indices
 
 def compute_edges_by_leading_type_sequence_encoding(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
     edges_leading_types = []

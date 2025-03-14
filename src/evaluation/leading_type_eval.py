@@ -1,10 +1,8 @@
 import argparse
-import datetime
+from datetime import datetime
 import json
 import time
 import logging
-
-from scipy.stats import argus
 
 from src.strategies.enumerating_selection import EnumeratingSubsetSelector
 from src.strategies.mmr_selection import RankingSubsetSelector
@@ -41,8 +39,9 @@ def compute_views(filename, object_types, short_name, file_type="json", params=N
     if file_type == "csv":
         indices_leading_types = compute_indices_by_leading_type(filename, file_type=file_type, object_types=object_types, act_name=params["act_name"], time_name=params["time_name"], sep=params["sep"])
     else:
-        indices_leading_types = compute_indices_by_leading_type_parallel(filename, file_type=file_type, object_types=object_types)
-
+       indices_leading_types = compute_indices_by_leading_type_parallel(filename, file_type=file_type, object_types=object_types)
+       #indices_leading_types = compute_indices_by_leading_type(filename, file_type=file_type,
+       #                                                                 object_types=object_types)
     logging.info("Done computing indices by leading type")
 
     if selection_method == "mmr":
@@ -69,6 +68,8 @@ def compute_views_for_bpi17(k=4, weight=0.5, sequence=False, selection_method="m
         "Offer",
         "Case_R"
     ]
+
+    assert k <= len(object_types), "k must be less than the number of object types"
     compute_views(filename, object_types, "BPI17", k=k, weight=weight, sequence=sequence, selection_method=selection_method)
 
 
@@ -82,19 +83,24 @@ def compute_views_for_bpi17_csv(k=4, weight=0.5, sequence=False, selection_metho
         "sep": ',',
     }
 
+    assert k <= len(object_types), "k must be less than the number of object types"
     compute_views(filename, object_types, "BPI17csv", file_type="csv", params=parameters, k=k, weight=weight, sequence=sequence, selection_method=selection_method)
 
 
 def compute_views_for_bpi14(k=7, weight=0.5, sequence=False, selection_method="mmr"):
     filename = 'data/BPIC14.jsonocel'
     object_types = ["ConfigurationItem", "ServiceComponent", "Incident", "Interaction", "Change", "Case_R", "KM"]
+
+    assert k <= len(object_types), "k must be less than the number of object types"
     compute_views(filename, object_types, "BPI14", k=k, weight=weight, sequence=sequence)
 
 
 def compute_views_for_order_management(k=5, weight=0.5, sequence=False, selection_method="mmr"):
     filename = 'data/order-management.jsonocel'
     object_types = ["orders", "items", "packages", "customers", "products"]
-    #object_types = ["customers", "products", "items"]
+    #object_types = ["customers", "products", "packages"]
+
+    assert k <= len(object_types), "k must be less than the number of object types"
     compute_views(filename, object_types, "Order", k=k, weight=weight, sequence=sequence, selection_method=selection_method)
 
 
@@ -106,10 +112,9 @@ def get_stats_for_views(filename, selected_views, object_types, indices_leading_
     result_json["method"] = method
     result_json["selected_views"] = []
     for k, res_tuple in enumerate(selected_views):
-        obj_idx, score, max_sim_to_prev, time = res_tuple
+        obj_idx, score, score_info, finish_time = res_tuple
         results_for_k = {}
         obj_t = object_types[obj_idx]
-        ocel = load_ocel_by_leading_type(filename, obj_t, file_type=file_type)
 
         # compute selected views and gather statistics: number of process executions, number of variants,
         # number of events covered, etc.
@@ -121,29 +126,27 @@ def get_stats_for_views(filename, selected_views, object_types, indices_leading_
         #  number of traces present in an event log
         # Level of detail (LoD) (Eq. 2): average number of unique activities per trace
         # Average number of events (AE) (Eq. 3): average number of events per trace:
-        num_proc_exec = len(ocel.process_executions)
-        print(num_proc_exec, indices_leading_types[obj_idx][2])
+        # TODO: add level of detail: average number of unique activities per trace
         results_for_k["object_type"] = obj_t
-        results_for_k["num_process_executions"] = indices_leading_types[obj_idx][2],
+        results_for_k["num_process_executions"] = indices_leading_types[obj_idx]["num_proc_exec"]
         #results_for_k["num_variants"] = len(ocel.variants())
-        results_for_k["num_edges"] = len(indices_leading_types[obj_idx][1])
-        results_for_k["score"] = score
-        results_for_k["time"] = time - start_time
+        results_for_k["num_edges"] = len(indices_leading_types[obj_idx]["relation_index"])
+        results_for_k["score info"] = score_info
+        results_for_k["time"] = finish_time - start_time
         results_for_k["position"] = k
-        results_for_k["max_sim_to_prev"] = max_sim_to_prev
 
         events_covered = set()
-        for edge in indices_leading_types[obj_idx][1]:
+        for edge in indices_leading_types[obj_idx]["relation_index"]:
             events_covered.add(edge[0])
             events_covered.add(edge[1])
 
-        # TODO: compute and store with indices when building indices, so no need to reload ocel
-        number_of_events = sum([len(proc_exec) for proc_exec in ocel.process_executions])
         results_for_k["num_of_events_covered"] = len(events_covered)
-        results_for_k["avg_num_of_events_per_trace"] = number_of_events / num_proc_exec if num_proc_exec > 0 else 0
+        results_for_k["num_of_events_total-dupl"] = indices_leading_types[obj_idx]["num_of_events"] # incl duplicates events
+        results_for_k["avg_num_of_events_per_trace"] = indices_leading_types[obj_idx]["avg_num_of_events_per_trace"]
         result_json["selected_views"].append(results_for_k)
 
-    file_id = str(datetime.datetime.now())
+    now = datetime.now()
+    file_id = now.strftime("%Y-%m-%d %H:%M:%S")
 
     with open(f"{path}/{file_id}_results_{short_name}_{method}.json", "w") as f:
         json.dump(result_json, f, indent=4)
