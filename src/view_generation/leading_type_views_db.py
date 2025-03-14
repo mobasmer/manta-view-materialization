@@ -54,8 +54,9 @@ def compute_edges_by_leading_type(filename, file_type="json", object_types=None,
     
     @return: list of tuples (index, relation_index, number of process executions) for each leading type
 '''
-def compute_indices_by_leading_type_db(filename, db_name, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
-    with duckdb.connect(db_name) as con:
+def compute_indices_by_leading_type_db(filename, db_name, file_type="json", object_types=None, act_name=None,
+                                       time_name=None, sep=None, max_duckdb_mem=5, max_duckdb_threads=4):
+    with duckdb.connect(db_name, config = {'threads': max_duckdb_threads, 'memory_limit': max_duckdb_mem}) as con:
         con.sql("DROP TABLE IF EXISTS viewmeta")
         con.sql("CREATE TABLE IF NOT EXISTS viewmeta(viewIdx INTEGER, objecttype STRING, numProcExecs INTEGER, numEvents INTEGER, AvgNumEventsPerTrace FLOAT)")
 
@@ -96,8 +97,10 @@ def compute_relation_index(obj_type, ocel, con, incr_idx, edges):
     i = 0
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
     temp_file.close()
-
-    for j, proc_exec in enumerate(ocel.process_executions):
+    logging.info("Started process executions")
+    process_executions = ocel.process_executions
+    logging.info("Computed process executions")
+    for j, proc_exec in enumerate(process_executions):
         proc_exec_graph = ocel.get_process_execution_graph(j)
         for edge in proc_exec_graph.edges:
             if i == batch_size:
@@ -117,6 +120,7 @@ def compute_relation_index(obj_type, ocel, con, incr_idx, edges):
             writer = csv.writer(csvfile)
             writer.writerows(edge2obj)
 
+    logging.info("Collected relation index")
     con.sql(f"COPY {obj_type} FROM '{temp_file.name}' (DELIMITER ',')")
     os.remove(temp_file.name)
 

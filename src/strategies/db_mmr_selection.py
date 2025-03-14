@@ -14,8 +14,9 @@ class DBRankingSubsetSelector(DBSubsetSelector):
 
     Initializes the SubsetSelector with the given views and computes the similarity scores.
     """
-    def __init__(self, db_name, object_types=None, counts_precomputed=False, weight=0.5):
-        super().__init__(db_name, object_types, counts_precomputed)
+    def __init__(self, db_name, object_types=None, counts_precomputed=False, weight=0.5,
+                 max_duckdb_mem="4GB", max_duckdb_threads=4):
+        super().__init__(db_name, object_types, counts_precomputed, max_duckdb_mem, max_duckdb_threads)
         self.weight = weight
 
     '''

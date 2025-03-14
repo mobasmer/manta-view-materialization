@@ -9,8 +9,10 @@ from tqdm import tqdm
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 class DBSubsetSelector:
-    def __init__(self,  db_name, object_types=None, counts_precomputed=False):
+    def __init__(self,  db_name, object_types=None, counts_precomputed=False, max_duckdb_mem="4GB", max_duckdb_threads=4):
         self.db_name = db_name
+        self.mem_limit = max_duckdb_mem
+        self.threads = max_duckdb_threads
         self.overall_scores = [-1 for _ in range(len(object_types))]
         self.pairwise_score = np.full((len(object_types),len(object_types)), fill_value = -1, dtype = float)
         self.object_types = object_types
@@ -32,7 +34,7 @@ class DBSubsetSelector:
         @return: similarity score and indices of views
     """
     def compute_pairwise_scores(self):
-        with duckdb.connect(self.db_name) as con:
+        with duckdb.connect(self.db_name, config={"memory_limit": self.mem_limit, "threads": self.threads}) as con:
             if not self.counts_precomputed:
                 for obj_type in tqdm(self.object_types):
                     con.sql("DROP TABLE IF EXISTS " + obj_type + "Counts")
