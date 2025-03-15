@@ -4,7 +4,6 @@ from datetime import datetime
 import json
 import time
 import logging
-import uuid
 
 import duckdb
 
@@ -34,8 +33,9 @@ def main(args):
         compute_views_for_bpi14(duckdb_config=duckdb_config)
     elif args.dataset == "order":
         compute_views_for_order_management(duckdb_config=duckdb_config)
-    elif args.dataset == "bpi15":
-        compute_views_for_order_management(duckdb_config=duckdb_config)
+    elif args.dataset.startswith("bpi15"):
+        lognr = args.dataset.split("-")[1]
+        compute_views_for_bpi15(duckdb_config=duckdb_config, lognr = lognr)
     else:
         print("Unknown dataset")
 
@@ -57,24 +57,34 @@ def parse_args():
 def compute_views(filename, object_types, db_name, file_type="json", k=2, weight=0.5, selection_method="mmr",
               duckdb_config=None, short_name=""):
     start_time = time.time()
-    result_file_id = str(uuid.uuid1())
+    result_file_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     if not relation_indices_precomputed:
         compute_indices_by_leading_type_db(filename, db_name, file_type=file_type, object_types=object_types,
                                            duckdb_config=duckdb_config)
+    index_computation_time = time.time() - start_time
     logging.info("Done computing indices by leading type")
 
     logging.info("Initializing ranking subset selector - computing scores")
     ranking_subset_selection = DBRankingSubsetSelector(db_name=db_name, object_types=object_types,
                                                        counts_precomputed=counts_precomputed, weight=weight,
                                                        duckdb_config=duckdb_config, file_id=result_file_id)
+    score_computation_time = time.time() - index_computation_time
     logging.info("Selecting views by mmr")
     selected_views = ranking_subset_selection.select_view_indices(k)
-    end_time = time.time()
+    view_selection_time = time.time() - score_computation_time
+    run_time = time.time() - start_time
+
+    recorded_times = {
+        "index_computation_time": index_computation_time,
+        "score_computation_time": score_computation_time,
+        "view_selection_time": view_selection_time,
+        "run_time": run_time
+    }
 
     print(selected_views)
     logging.info("Computing stats for evaluation")
     get_stats_for_views(filename, selected_views, object_types, db_name, start_time,
-                        f"{selection_method}-leading-type", result_file_id, runtime=end_time - start_time, short_name=short_name)
+                        f"{selection_method}-leading-type", result_file_id, runtimes=recorded_times, short_name=short_name)
 
     if remove_db:
         # Check if the file exists
@@ -141,29 +151,29 @@ def compute_views_for_order_management(k=None, weight=0.5, selection_method="mmr
     compute_views(filename, object_types, db_file, k=k, weight=weight, selection_method=selection_method,
                   duckdb_config=duckdb_config, short_name="order")
 
-def compute_views_for_bpi15(k=None, weight=0.5, selection_method="mmr", duckdb_config=None, lognr=1):
-    filename = 'data/BPIC15_Municipality" + lognr + .jsonocel'
+def compute_views_for_bpi15(k=None, weight=0.5, selection_method="mmr", duckdb_config=None, lognr="1"):
+    filename = 'data/BPIC15_Municipality' + lognr + '.jsonocel'
     object_types = ["Application",
       "Case_R",
       "Responsible_actor",
       "monitoringResource"]
 
     k = len(object_types) if k is None else k
-    db_file = db_path + "leading_type_views_bpi15"+ str(lognr) +".duckdb"
+    db_file = db_path + "leading_type_views_bpi15_"+ lognr +".duckdb"
     assert k <= len(object_types), "k must be less than the number of object types"
     compute_views(filename, object_types, db_file, k=k, weight=weight, selection_method=selection_method,
-                  duckdb_config=duckdb_config, short_name="order")
+                  duckdb_config=duckdb_config, short_name="BPI15_" + lognr)
 
 
-def get_stats_for_views(filename, selected_views, object_types, db_file, start_time, method, file_id, runtime=None, short_name=""):
+def get_stats_for_views(filename, selected_views, object_types, db_file, start_time, method, file_id, runtimes=None, short_name=""):
     with duckdb.connect(db_file) as con:
         view_infos = con.sql("SELECT * FROM viewmeta").fetchdf()
         print(view_infos)
 
     path = "results"
     result_json = {"filename": filename, "method": method, "selected_views": []}
-    if runtime is not None:
-        result_json["runtime"] = runtime
+    if runtimes is not None:
+        result_json["runtimes"] = runtimes
 
     for k, res_tuple in enumerate(selected_views):
         obj_idx, score, score_info, finish_time = res_tuple

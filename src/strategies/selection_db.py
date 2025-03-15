@@ -1,3 +1,4 @@
+import json
 import logging
 import pickle
 
@@ -111,10 +112,12 @@ class DBSubsetSelector:
         assert sum([0 if o_score != -1 else 1 for o_score in self.overall_scores]) == 0, "Overall scores not computed"
         logging.info("Computed overall scores")
 
-        with open(results_path + self.file_id + "_overall_scores.pkl", "wb") as f:
-            pickle.dump(self.overall_scores, f)
-        with open(results_path + self.file_id + "_pairwise_scores.pkl", "wb") as f:
-            pickle.dump(self.pairwise_score, f)
+        with open(results_path + self.file_id + "_overall_scores.json", "w") as f:
+            obj2score = {self.object_types[i]: self.overall_scores[i] for i in range(n)}
+            json.dump(obj2score, f)
+        with open(results_path + self.file_id + "_pairwise_scores.json", "w") as f:
+            oo2score = [(self.object_types[i], self.object_types[j], self.pairwise_score[i][j]) for j in range(n) for i in range(n)]
+            json.dump(oo2score, f)
 
     '''
     @param k: number of views to select
