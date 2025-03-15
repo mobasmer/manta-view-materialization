@@ -1,7 +1,6 @@
 import time
 
 from src.strategies.selection_db import DBSubsetSelector
-from src.util.similarity_measures import jaccard_sim_edges
 
 
 class DBRankingSubsetSelector(DBSubsetSelector):
@@ -15,8 +14,8 @@ class DBRankingSubsetSelector(DBSubsetSelector):
     Initializes the SubsetSelector with the given views and computes the similarity scores.
     """
     def __init__(self, db_name, object_types=None, counts_precomputed=False, weight=0.5,
-                 max_duckdb_mem="4GB", max_duckdb_threads=4):
-        super().__init__(db_name, object_types, counts_precomputed, max_duckdb_mem, max_duckdb_threads)
+                 duckdb_config=None, file_id=None):
+        super().__init__(db_name, object_types, counts_precomputed, duckdb_config, file_id)
         self.weight = weight
 
     '''

@@ -55,8 +55,16 @@ def compute_edges_by_leading_type(filename, file_type="json", object_types=None,
     @return: list of tuples (index, relation_index, number of process executions) for each leading type
 '''
 def compute_indices_by_leading_type_db(filename, db_name, file_type="json", object_types=None, act_name=None,
-                                       time_name=None, sep=None, max_duckdb_mem=5, max_duckdb_threads=4):
-    with duckdb.connect(db_name, config = {'threads': max_duckdb_threads, 'memory_limit': max_duckdb_mem}) as con:
+                                       time_name=None, sep=None, duckdb_config=None):
+
+    config = {}
+    if duckdb_config is not None:
+        if "memory_limit" in duckdb_config:
+            config["memory_limit"] = duckdb_config["memory_limit"]
+        if "threads" in duckdb_config:
+            config["threads"] = duckdb_config["threads"]
+
+    with duckdb.connect(db_name, config = config) as con:
         con.sql("DROP TABLE IF EXISTS viewmeta")
         con.sql("CREATE TABLE IF NOT EXISTS viewmeta(viewIdx INTEGER, objecttype STRING, numProcExecs INTEGER, numEvents INTEGER, AvgNumEventsPerTrace FLOAT)")
 
