@@ -57,21 +57,25 @@ def parse_args():
 def compute_views(filename, object_types, db_name, file_type="json", k=2, weight=0.5, selection_method="mmr",
               duckdb_config=None, short_name=""):
     start_time = time.time()
+
     result_file_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     if not relation_indices_precomputed:
         compute_indices_by_leading_type_db(filename, db_name, file_type=file_type, object_types=object_types,
                                            duckdb_config=duckdb_config)
-    index_computation_time = time.time() - start_time
+    indexing_end_time = time.time()
+    index_computation_time = indexing_end_time - start_time
     logging.info("Done computing indices by leading type")
 
     logging.info("Initializing ranking subset selector - computing scores")
     ranking_subset_selection = DBRankingSubsetSelector(db_name=db_name, object_types=object_types,
                                                        counts_precomputed=counts_precomputed, weight=weight,
                                                        duckdb_config=duckdb_config, file_id=result_file_id)
-    score_computation_time = time.time() - index_computation_time
+    score_comp_end_time = time.time()
+    score_computation_time = score_comp_end_time - indexing_end_time
+
     logging.info("Selecting views by mmr")
     selected_views = ranking_subset_selection.select_view_indices(k)
-    view_selection_time = time.time() - score_computation_time
+    view_selection_time = time.time() - score_comp_end_time
     run_time = time.time() - start_time
 
     recorded_times = {

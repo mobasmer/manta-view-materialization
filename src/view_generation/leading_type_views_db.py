@@ -8,6 +8,7 @@ from ocpa.objects.log.importer.ocel import factory as ocel_import_factory
 from tqdm import tqdm
 import duckdb
 import tempfile
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
@@ -86,7 +87,8 @@ def compute_indices_by_leading_type_db(filename, db_name, file_type="json", obje
             logging.info(f"Done loading: {obj_type}")
 
             logging.info(f"Start building relation index for {obj_type}")
-            compute_relation_index(obj_type, ocel, con, incr_idx, edges)
+            temp_path = os.path.dirname(db_name)
+            compute_relation_index(obj_type, ocel, con, incr_idx, edges, temp_path=temp_path)
 
             num_proc_exec = len(ocel.process_executions)
             num_of_events = sum([len(proc_exec) for proc_exec in ocel.process_executions])
@@ -99,11 +101,11 @@ def compute_indices_by_leading_type_db(filename, db_name, file_type="json", obje
             con.commit()
             logging.info(f"Finished building relation index for {obj_type}")
 
-def compute_relation_index(obj_type, ocel, con, incr_idx, edges):
+def compute_relation_index(obj_type, ocel, con, incr_idx, edges, temp_path=None):
     edge2obj = []
     batch_size = 50000
     i = 0
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv', dir=temp_path)
     temp_file.close()
     logging.info("Started process executions")
     process_executions = ocel.process_executions
