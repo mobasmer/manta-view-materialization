@@ -4,11 +4,12 @@ from datetime import datetime
 import json
 import time
 import logging
-
 import duckdb
+from promg import DatabaseConnection
 
 from src.strategies.db_mmr_selection import DBRankingSubsetSelector
-from src.view_generation.leading_type_views_db import compute_indices_by_leading_type_db
+from src.view_generation.interacting_entities import compute_indices_by_interacting_entities
+from src.view_generation.neo4j_leading_type import compute_indices_by_ekg_leading_types
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -27,17 +28,17 @@ def main(args):
         global db_path
         db_path = args.dbpath
 
-    if args.dataset == "bpi17":
-        compute_views_for_bpi17(duckdb_config=duckdb_config)
-    elif args.dataset == "bpi14":
-        compute_views_for_bpi14(duckdb_config=duckdb_config)
-    elif args.dataset == "order":
-        compute_views_for_order_management(duckdb_config=duckdb_config)
-    elif args.dataset.startswith("bpi15"):
-        lognr = args.dataset.split("-")[1]
-        compute_views_for_bpi15(duckdb_config=duckdb_config, lognr = lognr)
-    else:
-        print("Unknown dataset")
+    short_name = args.dataset
+    temp_db_path = f"data/temp/ekg_leading_types_{short_name}.duckdb"
+
+    neo4j_connection = DatabaseConnection(
+        db_name="neo4j",
+        uri="bolt://localhost:7687",
+        user="neo4j",
+        password="12341234")
+
+    compute_views(neo4j_connection, temp_db_path, contextdef=args.contextdef, weight=args.weight, selection_method=args.selection_method,
+                  duckdb_config=duckdb_config, short_name=short_name)
 
 
 def parse_args():
@@ -50,24 +51,35 @@ def parse_args():
     parser.add_argument("--maxmem", type=str, default=None, help="Max available memory for DuckDB (must be KB, MB, GB)")
     parser.add_argument("--threads", type=int, default=None, help="Max number of threads for DuckDB")
     parser.add_argument("--dbpath", type=str, default=None, help="Path for temporary database files")
+    parser.add_argument("--contextdef", type=str, default="interact", help="Method for defining context (interact or leading)")
     return parser.parse_args()
 
 
 # TODO: check that event ids are taken from the event log / assigned deterministically
-def compute_views(filename, object_types, db_name, file_type="json", k=2, weight=0.5, selection_method="mmr",
+def compute_views(neo4j_connection, temp_db_path, contextdef="interact", weight=0.5, selection_method="mmr",
               duckdb_config=None, short_name=""):
     start_time = time.time()
 
-    result_file_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+    result_file_id = datetime.now().strftime("%Y%m%d-%H%M%S") + "_" + short_name + "_" + selection_method + "_" + "interacting_entities"
     if not relation_indices_precomputed:
-        compute_indices_by_interacting_entities(filename, db_name, file_type=file_type, object_types=object_types,
-                                           duckdb_config=duckdb_config)
+        if contextdef == "leading":
+            compute_indices_by_ekg_leading_types(neo4j_connection=neo4j_connection, temp_db_path=temp_db_path,
+                                                                duckdb_config=duckdb_config, short_name=short_name)
+        else:
+            compute_indices_by_interacting_entities(neo4j_connection=neo4j_connection, temp_db_path=temp_db_path,
+                                                    duckdb_config=duckdb_config)
+
+    with duckdb.connect(temp_db_path) as duckdb_conn:
+        view_infos = duckdb_conn.sql("SELECT objecttype FROM viewmeta ORDER BY viewIdx ASC").fetchall()
+        context_defs = [view_info[0] for view_info in view_infos]
+
     indexing_end_time = time.time()
     index_computation_time = indexing_end_time - start_time
     logging.info("Done computing indices by leading type")
 
     logging.info("Initializing ranking subset selector - computing scores")
-    ranking_subset_selection = DBRankingSubsetSelector(db_name=db_name, object_types=object_types,
+    k = len(context_defs)
+    ranking_subset_selection = DBRankingSubsetSelector(db_name=temp_db_path, object_types=context_defs,
                                                        counts_precomputed=counts_precomputed, weight=weight,
                                                        duckdb_config=duckdb_config, file_id=result_file_id)
     score_comp_end_time = time.time()
@@ -87,25 +99,33 @@ def compute_views(filename, object_types, db_name, file_type="json", k=2, weight
 
     print(selected_views)
     logging.info("Computing stats for evaluation")
-    get_stats_for_views(filename, selected_views, object_types, db_name, start_time,
-                        f"{selection_method}-leading-type", result_file_id, runtimes=recorded_times, short_name=short_name)
+    get_stats_for_views(selected_views, context_defs, temp_db_path, start_time,
+                        f"{selection_method}-interacting_entities", result_file_id, runtimes=recorded_times, short_name=short_name)
 
     if remove_db:
         # Check if the file exists
-        if os.path.exists(db_name):
+        if os.path.exists(temp_db_path):
             # Remove the file
-            os.remove(db_name)
-            print(f"Database '{db_name}' has been removed.")
+            os.remove(temp_db_path)
+            print(f"Database '{temp_db_path}' has been removed.")
         else:
-            print(f"Database '{db_name}' does not exist.")
+            print(f"Database '{temp_db_path}' does not exist.")
 
-def get_stats_for_views(filename, selected_views, object_types, db_file, start_time, method, file_id, runtimes=None, short_name=""):
+        os.path.dirname(temp_db_path)
+        temp_edges_path = os.path.join(os.path.dirname(temp_db_path), f"interacting_entities_edges_{short_name}.dbm")
+        if os.path.exists(temp_edges_path):
+            os.remove(temp_edges_path)
+            print(f"Database '{temp_edges_path}' has been removed.")
+
+
+def get_stats_for_views(selected_views, object_types, db_file, start_time, method, file_id, runtimes=None, short_name=""):
     with duckdb.connect(db_file) as con:
         view_infos = con.sql("SELECT * FROM viewmeta").fetchdf()
         print(view_infos)
 
     path = "results"
-    result_json = {"filename": filename, "method": method, "selected_views": []}
+    result_json = {"filename": "neo4j_" + short_name, "method": method, "selected_views": []}
+
     if runtimes is not None:
         result_json["runtimes"] = runtimes
 
@@ -147,7 +167,11 @@ def get_stats_for_views(filename, selected_views, object_types, db_file, start_t
         # Average number of events (AE) (Eq. 3): average number of events per trace (Murillas et al., 2019)
         result_json["selected_views"].append(results_for_k)
 
-    now = datetime.now()
 
-    with open(f"{path}/{file_id}_results_{short_name}_{method}.json", "w") as f:
+    with open(f"{path}/{file_id}_results.json", "w") as f:
         json.dump(result_json, f, indent=4)
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)

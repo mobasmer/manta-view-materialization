@@ -6,34 +6,35 @@ import tempfile
 import dbm
 
 import duckdb
-from promg import DatabaseConnection, Query
+from promg import DatabaseConnection
 
 from src.util.ekg_queries import get_entity_types_query, get_contexts_query_single_object, get_object_pairs_query, \
-    get_events_for_objects_query
+    get_events_for_objects_query, event_time_attr, entity_id_attr, entity_type_attr
 from src.util.query_result_parser import parse_to_list
 
 
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+#
+# def main():
+#     short_name = "order"
+#     temp_db_path = f"data/temp/interacting_entities_{short_name}.duckdb"
+#
+#     neo4j_connection = DatabaseConnection(
+#         db_name="neo4j",
+#         uri="bolt://localhost:7687",
+#         user="neo4j",
+#         password="12341234")
+#
+#     compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name)
 
-def main():
-    temp_db_path = "data/temp/interacting_entities_bpi14.duckdb"
-    short_name = "bpi14"
 
-    neo4j_connection = DatabaseConnection(
-        db_name="neo4j",
-        uri="bolt://localhost:7687",
-        user="neo4j",
-        password="12341234")
-
-    compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name)
-
-
-def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name, duckdb_config=None):
+def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name="", duckdb_config=None, entity_id_attr="id"):
     result = neo4j_connection.exec_query(get_entity_types_query)
-    entity_types = parse_to_list(result, 'e.EntityType')
+    entity_types = parse_to_list(result, "e." + entity_type_attr)
     print(entity_types)
     context_defs = []
-    #context_defs = [(t,None) for t in entity_types]
+    context_defs = [(t,None) for t in entity_types]
     context_defs.extend(list(itertools.combinations(entity_types, 2)))
     context_defs.extend([(t, t) for t in entity_types])
     context_names = [str(t) if t2 is None else str(t + "___" + t2) for t, t2 in context_defs]
@@ -46,15 +47,17 @@ def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, shor
         if "threads" in duckdb_config:
             config["threads"] = duckdb_config["threads"]
 
+    os.path.dirname(temp_db_path)
+    temp_edges_path = os.path.join(os.path.dirname(temp_db_path), f"interacting_entities_edges_{short_name}.dbm")
     with duckdb.connect(temp_db_path, config=config) as duckdb_conn,\
-        dbm.open("data/temp/interacting_entities_bpi14_edges.dbm", 'c') as edges_db:
+        dbm.open(temp_edges_path, 'c') as edges_db:
 
         duckdb_conn.sql("DROP TABLE IF EXISTS viewmeta")
         duckdb_conn.sql(
             "CREATE TABLE IF NOT EXISTS viewmeta(viewIdx INTEGER, objecttype STRING, numProcExecs INTEGER, numEvents INTEGER, AvgNumEventsPerTrace FLOAT)")
 
-        duckdb_conn.sql("DROP TABLE IF EXISTS edges")
-        duckdb_conn.sql("CREATE TABLE IF NOT EXISTS edges(source INTEGER, target INTEGER, edgeId INTEGER primary key)")
+        #duckdb_conn.sql("DROP TABLE IF EXISTS edges")
+        #duckdb_conn.sql("CREATE TABLE IF NOT EXISTS edges(source INTEGER, target INTEGER, edgeId INTEGER primary key)")
 
         for context_name in context_names:
             duckdb_conn.sql("DROP TABLE IF EXISTS " + context_name)
@@ -66,8 +69,8 @@ def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, shor
         for cidx, context in enumerate(context_defs):
             compute_relation_index(neo4j_connection, context, context_names[cidx], cidx, duckdb_conn, incr_idx, edges_db)
 
-            duckdb_config.sql("CREATE INDEX IF NOT EXISTS " + context_names[cidx] + "_edge_index ON " + context_names[cidx] + "(edge)")
-            duckdb_config.commit()
+            duckdb_conn.sql("CREATE INDEX IF NOT EXISTS " + context_names[cidx] + "_edge_index ON " + context_names[cidx] + "(edge)")
+            duckdb_conn.commit()
 
             logging.info(f"Finished building relation index for {context_names[cidx]}")
 
@@ -109,6 +112,8 @@ def compute_relation_index(neo4j_connection, context, context_name, cidx, duckdb
                 writer.writerows(edge2obj)
 
         duckdb_conn.sql(f"COPY {context_name} FROM '{temp_file.name}' (DELIMITER ',')")
+        duckdb_conn.commit()
+
         temp_file.close()
         os.remove(temp_file.name)
 
@@ -141,9 +146,11 @@ def compute_relation_index(neo4j_connection, context, context_name, cidx, duckdb
             with open(temp_file.name, 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerows(edge2obj)
+
         if len(obj_pair_result) > 0:
             duckdb_conn.sql(f"COPY {context_name} FROM '{temp_file.name}' (DELIMITER ',')")
             duckdb_conn.commit()
+
         temp_file.close()
         os.remove(temp_file.name)
 
@@ -153,5 +160,5 @@ def compute_relation_index(neo4j_connection, context, context_name, cidx, duckdb
 
     logging.info("Ingested relation index")
 
-if __name__:
-    main()
+#if __name__:
+#    main()

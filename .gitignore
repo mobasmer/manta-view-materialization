@@ -2,3 +2,5 @@
 data/BPIC14.jsonocel
 data/BPIC17.jsonocel
 data/temp/
+.DS_Store
+*/.DS_Store
