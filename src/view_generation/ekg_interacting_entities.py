@@ -6,7 +6,6 @@ import tempfile
 import dbm
 
 import duckdb
-from promg import DatabaseConnection
 
 from src.util.ekg_queries import get_entity_types_query, get_contexts_query_single_object, get_object_pairs_query, \
     get_events_for_objects_query, event_time_attr, entity_id_attr, entity_type_attr
@@ -32,13 +31,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name="", duckdb_config=None, entity_id_attr="id"):
     result = neo4j_connection.exec_query(get_entity_types_query)
     entity_types = parse_to_list(result, "e." + entity_type_attr)
-    print(entity_types)
+
     context_defs = []
     context_defs = [(t,None) for t in entity_types]
     context_defs.extend(list(itertools.combinations(entity_types, 2)))
     context_defs.extend([(t, t) for t in entity_types])
     context_names = [str(t) if t2 is None else str(t + "___" + t2) for t, t2 in context_defs]
-    print(context_names)
 
     config = {}
     if duckdb_config is not None:
@@ -66,8 +64,9 @@ def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, shor
 
         # edges = {}
         incr_idx = 0
-        for cidx, context in enumerate(context_defs):
-            compute_relation_index(neo4j_connection, context, context_names[cidx], cidx, duckdb_conn, incr_idx, edges_db)
+        for cidx, context_def in enumerate(context_defs):
+            logging.info(f"Start building relation index for {context_names[cidx]}")
+            compute_relation_index(neo4j_connection, context_def, context_names[cidx], cidx, duckdb_conn, incr_idx, edges_db)
 
             duckdb_conn.sql("CREATE INDEX IF NOT EXISTS " + context_names[cidx] + "_edge_index ON " + context_names[cidx] + "(edge)")
             duckdb_conn.commit()
@@ -75,8 +74,8 @@ def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, shor
             logging.info(f"Finished building relation index for {context_names[cidx]}")
 
 
-def compute_relation_index(neo4j_connection, context, context_name, cidx, duckdb_conn, incr_idx, edges):
-    ot1, ot2 = context
+def compute_relation_index(neo4j_connection, context_def, context_name, cidx, duckdb_conn, incr_idx, edges):
+    ot1, ot2 = context_def
     edge2obj = []
     batch_size = 50000
     i = 0

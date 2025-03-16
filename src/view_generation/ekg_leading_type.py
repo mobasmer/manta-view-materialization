@@ -54,11 +54,13 @@ def compute_indices_by_ekg_leading_types(neo4j_connection, temp_db_path, short_n
 
         # edges = {}
         incr_idx = 0
-        for i, entity_type in enumerate(entity_types):
+        for cidx, entity_type in enumerate(entity_types):
             logging.info("Computing leading type context for %s", entity_type)
-            compute_leading_type_context_iteratively(i, entity_type, neo4j_connection, duckdb_conn, edges_db, incr_idx, max_path_length=max_path_length, entity_types=entity_types)
+            compute_leading_type_context_iteratively(cidx, entity_type, neo4j_connection, duckdb_conn, edges_db, incr_idx, max_path_length=max_path_length, entity_types=entity_types)
             #compute_leading_type_context_union(i, entity_type, neo4j_connection, duckdb_conn, edges_db, incr_idx,
             #                                         max_path_length=10, entity_types=entity_types)
+            duckdb_conn.sql("CREATE INDEX IF NOT EXISTS " + entity_type + "_edge_index ON " + entity_type + "(edge)")
+            duckdb_conn.commit()
 
 def compute_leading_type_context_iteratively(cidx, ot1, neo4j_connection, duckdb_conn, edges_db, incr_idx, max_path_length=10, entity_types=None):
     query_results = neo4j_connection.exec_query(get_objects_for_leading_type, **{"ot1": ot1})
@@ -132,8 +134,6 @@ def compute_relation_index(contexts, neo4j_connection, duckdb_conn, cidx, contex
     for pi_idx, context in enumerate(contexts):
         view = neo4j_connection.exec_query(get_process_instances_multiple_objects, **{"objectIdList": context})
         events = view[0]['eventList']
-        #if pi_idx < 3:
-            #print(events)
         num_events += len(events)
 
         for j in range(len(events) - 1):

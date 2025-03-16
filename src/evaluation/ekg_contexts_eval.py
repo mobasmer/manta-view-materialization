@@ -8,8 +8,8 @@ import duckdb
 from promg import DatabaseConnection
 
 from src.strategies.db_mmr_selection import DBRankingSubsetSelector
-from src.view_generation.interacting_entities import compute_indices_by_interacting_entities
-from src.view_generation.neo4j_leading_type import compute_indices_by_ekg_leading_types
+from src.view_generation.ekg_interacting_entities import compute_indices_by_interacting_entities
+from src.view_generation.ekg_leading_type import compute_indices_by_ekg_leading_types
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 

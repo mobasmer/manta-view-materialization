@@ -1,6 +1,6 @@
 import time
 
-from src.strategies.selection_db import DBSubsetSelector
+from src.strategies.db_selection import DBSubsetSelector
 
 
 class DBRankingSubsetSelector(DBSubsetSelector):

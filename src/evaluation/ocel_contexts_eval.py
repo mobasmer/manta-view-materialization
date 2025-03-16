@@ -8,7 +8,7 @@ import logging
 import duckdb
 
 from src.strategies.db_mmr_selection import DBRankingSubsetSelector
-from src.view_generation.leading_type_views_db import compute_indices_by_leading_type_db
+from src.view_generation.ocel_leading_type import compute_indices_by_leading_type_db
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 

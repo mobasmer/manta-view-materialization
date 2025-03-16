@@ -7,11 +7,11 @@ import logging
 
 from src.strategies.enumerating_selection import EnumeratingSubsetSelector
 from src.strategies.mmr_selection import RankingSubsetSelector
-from src.strategies.selection_db import DBRankingSubsetSelector
+from src.strategies.db_mmr_selection import DBRankingSubsetSelector
 from src.util.similarity_measures import matching_similarities
 from src.view_generation.leading_type_views import load_ocel_by_leading_type, compute_indices_by_leading_type, \
     compute_indices_by_leading_type_parallel
-from src.view_generation.leading_type_views_db import compute_indices_by_leading_type_db, \
+from src.view_generation.ocel_leading_type import compute_indices_by_leading_type_db, \
     compute_indices_by_leading_type_parallel_db
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -57,8 +57,8 @@ def compute_views(filename, object_types, short_name, file_type="json", params=N
 
     if selection_method == "mmr":
         logging.info("Initializing ranking subset selector - computing scores")
-        #ranking_subset_selection = RankingSubsetSelector(views=indices_leading_types, weight=weight, similarity_function=matching_similarities, parallel=parallel, object_types=object_types)
-        ranking_subset_selection = DBRankingSubsetSelector(db_name="leading_type_views.db", object_types=object_types, similarity_function=matching_similarities)
+        ranking_subset_selection = RankingSubsetSelector(views=indices_leading_types, weight=weight, similarity_function=matching_similarities, parallel=parallel, object_types=object_types)
+        #ranking_subset_selection = DBRankingSubsetSelector(db_name="leading_type_views.db", object_types=object_types, similarity_function=matching_similarities)
         logging.info("Selecting views by mmr")
         selected_views = ranking_subset_selection.select_view_indices(k)
     else:
