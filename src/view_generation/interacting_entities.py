@@ -2,122 +2,156 @@ import csv
 import itertools
 import logging
 import os
-import pickle
 import tempfile
+import dbm
 
 import duckdb
 from promg import DatabaseConnection, Query
-from src.util.query_result_parser import parse_to_list, parse_to_2d_list
-from src.view_generation.leading_type_views_db import compute_relation_index
+
+from src.util.ekg_queries import get_entity_types_query, get_contexts_query_single_object, get_object_pairs_query, \
+    get_events_for_objects_query
+from src.util.query_result_parser import parse_to_list
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-def get_entity_types_query():
-    query_str = '''
-               MATCH (e:Entity)
-               RETURN DISTINCT e.EntityType
-               '''
+def main():
+    temp_db_path = "data/temp/interacting_entities_bpi14.duckdb"
+    short_name = "bpi14"
 
-    return Query(query_str=query_str)
-
-
-def get_object_pairs_query(ot1, ot2, k=1):
-    match_string = ""
-    if k > 1:
-        for i in range(k-1):
-            match_string += "-[:REL]-(:Entity)"
-    query_str = f'''
-               MATCH (e1:Entity){match_string}-[:REL]-(e2:Entity)
-               WHERE e1.EntityType = "$type1" AND e2.EntityType = "$type2"
-               RETURN DISTINCT e1.ID, e2.ID;
-               '''
-    return Query(query_str=query_str,
-                 template_string_parameters={
-                     "type1": ot1,
-                     "type2": ot2
-                 })
-
-def get_events_for_objects_query(o1, o2):
-    query_str = f'''
-               MATCH (e:Event)-[:CORR]-(ent:Entity)
-               WHERE ent.ID = "$o1" OR ent.ID = "$o2"
-               RETURN e.idx, e.timestamp
-               ORDER BY e.timestamp ASC
-               '''
-    return Query(query_str=query_str,
-                 template_string_parameters={
-                     "o1": o1,
-                     "o2": o2
-                 })
-
-def compute_indices_by_interacting_types(temp_db_name, short_name):
     neo4j_connection = DatabaseConnection(
         db_name="neo4j",
         uri="bolt://localhost:7687",
         user="neo4j",
-        password="12345678")
+        password="12341234")
 
+    compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name)
+
+
+def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name, duckdb_config=None):
     result = neo4j_connection.exec_query(get_entity_types_query)
     entity_types = parse_to_list(result, 'e.EntityType')
     print(entity_types)
-    context_defs = list(itertools.combinations(entity_types, 2))
+    context_defs = []
+    #context_defs = [(t,None) for t in entity_types]
+    context_defs.extend(list(itertools.combinations(entity_types, 2)))
     context_defs.extend([(t, t) for t in entity_types])
-    print(context_defs)
-    edges_leading_types = []
+    context_names = [str(t) if t2 is None else str(t + "___" + t2) for t, t2 in context_defs]
+    print(context_names)
 
-    edges = {}
-    incr_idx = 0
-    for i, (ot1, ot2) in enumerate(context_defs):
-        relations = set()
-        print("start object pair query", (ot1, ot2))
-        result = neo4j_connection.exec_query(get_object_pairs_query, **{"ot1": ot1, "ot2": ot2})
-        print("end object pair query", (ot1, ot2))
-        object_pairs = parse_to_2d_list(result, 'e1.ID', 'e2.ID')
-         # store object pairs for each object type pair s.t. we don't have to query them again
-        with open(f"../../data/object_pairs/object_pairs_{ot1}_{ot2}.pkl", "wb") as f:
-            pickle.dump(object_pairs, f)
-        print(object_pairs)
-        #with open(f"../../data/object_pairs/object_pairs_{ot1}_{ot2}.pkl", "rb") as f:
-        #    object_pairs = pickle.load(f)
-        con = duckdb.connect()
+    config = {}
+    if duckdb_config is not None:
+        if "memory_limit" in duckdb_config:
+            config["memory_limit"] = duckdb_config["memory_limit"]
+        if "threads" in duckdb_config:
+            config["threads"] = duckdb_config["threads"]
 
-        compute_relation_index(neo4j_connection, ot1 + "+" + ot2, object_pairs, con, incr_idx, edges)
-        edges_leading_types.append((i, relations))
-        print("done with object pair", i)
+    with duckdb.connect(temp_db_path, config=config) as duckdb_conn,\
+        dbm.open("data/temp/interacting_entities_bpi14_edges.dbm", 'c') as edges_db:
 
-def compute_relation_index(neo4j_connection, obj_type, object_pairs, con, incr_idx, edges):
+        duckdb_conn.sql("DROP TABLE IF EXISTS viewmeta")
+        duckdb_conn.sql(
+            "CREATE TABLE IF NOT EXISTS viewmeta(viewIdx INTEGER, objecttype STRING, numProcExecs INTEGER, numEvents INTEGER, AvgNumEventsPerTrace FLOAT)")
+
+        duckdb_conn.sql("DROP TABLE IF EXISTS edges")
+        duckdb_conn.sql("CREATE TABLE IF NOT EXISTS edges(source INTEGER, target INTEGER, edgeId INTEGER primary key)")
+
+        for context_name in context_names:
+            duckdb_conn.sql("DROP TABLE IF EXISTS " + context_name)
+            duckdb_conn.sql("CREATE TABLE IF NOT EXISTS " + context_name + "(edge INTEGER, procExec String)")
+        duckdb_conn.commit()
+
+        # edges = {}
+        incr_idx = 0
+        for cidx, context in enumerate(context_defs):
+            compute_relation_index(neo4j_connection, context, context_names[cidx], cidx, duckdb_conn, incr_idx, edges_db)
+
+            duckdb_config.sql("CREATE INDEX IF NOT EXISTS " + context_names[cidx] + "_edge_index ON " + context_names[cidx] + "(edge)")
+            duckdb_config.commit()
+
+            logging.info(f"Finished building relation index for {context_names[cidx]}")
+
+
+def compute_relation_index(neo4j_connection, context, context_name, cidx, duckdb_conn, incr_idx, edges):
+    ot1, ot2 = context
     edge2obj = []
     batch_size = 50000
     i = 0
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv', dir='data/temp')
     temp_file.close()
 
-    for pi_idx, (o1, o2) in enumerate(object_pairs):
-        #print(o1, o2)
-        result = neo4j_connection.exec_query(get_events_for_objects_query, **{"o1": o1, "o2": o2})
-        events = parse_to_2d_list(result, 'e.idx', 'e.timestamp')
-        print(o1, o2, len(events))
+    if ot2 is None:
+        logging.info("start context query for %s", context_name)
+        query_result = neo4j_connection.exec_query(get_contexts_query_single_object, **{"ot1": ot1})
+        num_proc_execs = len(query_result)
+        num_events = sum([len(r['eventList']) for r in query_result])
+        avg_num_events_per_trace =  num_events / num_proc_execs if num_proc_execs > 0 else 0
 
-        for j in range(len(events) - 1):
-            if i == batch_size:
-                with open(temp_file.name, 'a', newline='') as csvfile:
-                    writer = csv.writer(csvfile)
-                    writer.writerows(edge2obj)
-                edge2obj = []
-                i = 0
-            edge = (events[j][0], events[j + 1][0])
-            if edge not in edges:
-                edges[edge] = incr_idx
-                incr_idx += 1
-            edge2obj.append((edges[edge], pi_idx))
-            i += 1
+        for pi_idx, record in enumerate(query_result):
+            events = record['eventList']
+            for j in range(len(events) - 1):
+                if i == batch_size:
+                    with open(temp_file.name, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerows(edge2obj)
+                    edge2obj = []
+                    i = 0
+                edge = str((events[j]["id"], events[j + 1]["id"]))
+                if edge not in edges:
+                    edges[edge] = str(incr_idx)
+                    incr_idx += 1
+                edge2obj.append((int(edges[edge]), pi_idx))
+                i += 1
 
-    if len(edge2obj) > 0:
-        with open(temp_file.name, 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(edge2obj)
+        if len(edge2obj) > 0:
+            with open(temp_file.name, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(edge2obj)
 
-    con.sql(f"COPY {obj_type} FROM '{temp_file.name}' (DELIMITER ',')")
-    os.remove(temp_file.name)
+        duckdb_conn.sql(f"COPY {context_name} FROM '{temp_file.name}' (DELIMITER ',')")
+        temp_file.close()
+        os.remove(temp_file.name)
+
+    else:
+        logging.info("start context query for %s", context_name)
+        obj_pair_result = neo4j_connection.exec_query(get_object_pairs_query, **{"ot1": ot1, "ot2": ot2})
+        num_proc_execs = len(obj_pair_result)
+        num_events = 0
+        for pi_idx, obj_pair in enumerate(obj_pair_result):
+            query_result = neo4j_connection.exec_query(get_events_for_objects_query, **{"o1": obj_pair["o1"], "o2": obj_pair["o1"]})
+            num_events += len(query_result[0]['eventList'])
+            events = query_result[0]['eventList']
+            for j in range(len(events) - 1):
+                if i == batch_size:
+                    with open(temp_file.name, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerows(edge2obj)
+                    edge2obj = []
+                    i = 0
+                edge = str((events[j]["id"], events[j + 1]["id"]))
+                if edge not in edges:
+                    edges[edge] = str(incr_idx)
+                    incr_idx += 1
+                edge2obj.append((int(edges[edge]), pi_idx))
+                i += 1
+
+        avg_num_events_per_trace = num_events / num_proc_execs if num_proc_execs > 0 else 0
+
+        if len(edge2obj) > 0:
+            with open(temp_file.name, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(edge2obj)
+        if len(obj_pair_result) > 0:
+            duckdb_conn.sql(f"COPY {context_name} FROM '{temp_file.name}' (DELIMITER ',')")
+            duckdb_conn.commit()
+        temp_file.close()
+        os.remove(temp_file.name)
+
+    duckdb_conn.execute("INSERT INTO viewmeta VALUES (?, ?, ?, ?, ?)",
+                (cidx, context_name, num_proc_execs, num_events, avg_num_events_per_trace))
+    duckdb_conn.commit()
 
     logging.info("Ingested relation index")
+
+if __name__:
+    main()
