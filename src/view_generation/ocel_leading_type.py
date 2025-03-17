@@ -11,6 +11,7 @@ import tempfile
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
+incr_edge_idx = 0
 
 def get_ocel_from_csv(filename, leading_type, object_types, act_name, time_name, sep):
     parameters = {
@@ -78,7 +79,6 @@ def compute_indices_by_leading_type_db(filename, db_name, file_type="json", obje
 
         con.commit()
 
-        incr_idx = 1
         edges = dict()
 
         for i, obj_type in tqdm(enumerate(object_types), desc="Preparing relation indices for leading types"):
@@ -88,7 +88,7 @@ def compute_indices_by_leading_type_db(filename, db_name, file_type="json", obje
 
             logging.info(f"Start building relation index for {obj_type}")
             temp_path = os.path.dirname(db_name)
-            compute_relation_index(obj_type, ocel, con, incr_idx, edges, temp_path=temp_path)
+            compute_relation_index(obj_type, ocel, con, edges, temp_path=temp_path)
 
             num_proc_exec = len(ocel.process_executions)
             num_of_events = sum([len(proc_exec) for proc_exec in ocel.process_executions])
@@ -101,7 +101,8 @@ def compute_indices_by_leading_type_db(filename, db_name, file_type="json", obje
             con.commit()
             logging.info(f"Finished building relation index for {obj_type}")
 
-def compute_relation_index(obj_type, ocel, con, incr_idx, edges, temp_path=None):
+def compute_relation_index(obj_type, ocel, con, edges, temp_path=None):
+    global incr_edge_idx
     edge2obj = []
     batch_size = 50000
     i = 0
@@ -120,8 +121,8 @@ def compute_relation_index(obj_type, ocel, con, incr_idx, edges, temp_path=None)
                 edge2obj = []
                 i = 0
             if edge not in edges:
-                edges[edge] = incr_idx
-                incr_idx += 1
+                edges[edge] = incr_edge_idx
+                incr_edge_idx += 1
             edge2obj.append((edges[edge], j))
             i += 1
 

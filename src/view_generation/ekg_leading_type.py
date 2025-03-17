@@ -13,17 +13,7 @@ from src.util.ekg_queries import \
 from src.util.query_result_parser import parse_to_list
 
 
-# def main():
-#     short_name = "order"
-#     temp_db_path = f"../../data/temp/ekg_leading_types_{short_name}.duckdb"
-#
-#     neo4j_connection = DatabaseConnection(
-#         db_name="neo4j",
-#         uri="bolt://localhost:7687",
-#         user="neo4j",
-#         password="12341234")
-#
-#     compute_indices_by_ekg_leading_types(neo4j_connection, temp_db_path, max_path_length=1000, short_name=short_name)
+incr_edge_idx = 0
 
 def compute_indices_by_ekg_leading_types(neo4j_connection, temp_db_path, short_name="", duckdb_config=None, max_path_length=1000):
     result = neo4j_connection.exec_query(get_entity_types_query)
@@ -53,7 +43,6 @@ def compute_indices_by_ekg_leading_types(neo4j_connection, temp_db_path, short_n
         duckdb_conn.commit()
 
         edges_db = {}
-        incr_idx = 0
         for cidx, entity_type in enumerate(entity_types):
             logging.info("Computing leading type context for %s", entity_type)
             compute_leading_type_context_iteratively(cidx, entity_type, neo4j_connection, duckdb_conn, edges_db, incr_idx, max_path_length=max_path_length, entity_types=entity_types)
@@ -118,10 +107,11 @@ def compute_leading_type_context_union(cidx, ot1, neo4j_connection, duckdb_conn,
 
         contexts4leading.append(context)
 
-    compute_relation_index(contexts4leading, neo4j_connection, duckdb_conn, cidx, ot1, edges_db, incr_idx)
+    compute_relation_index(contexts4leading, neo4j_connection, duckdb_conn, cidx, ot1, edges_db)
 
 
-def compute_relation_index(contexts, neo4j_connection, duckdb_conn, cidx, context_name, edges, incr_idx):
+def compute_relation_index(contexts, neo4j_connection, duckdb_conn, cidx, context_name, edges):
+    global incr_edge_idx
     edge2obj = []
     batch_size = 50000
     i = 0
@@ -154,8 +144,8 @@ def compute_relation_index(contexts, neo4j_connection, duckdb_conn, cidx, contex
             edge = (events[j]["id"], events[j + 1]["id"])
             if edge not in edges:
                 #edges[edge] = str(incr_idx)
-                edges[edge] = incr_idx
-                incr_idx += 1
+                edges[edge] = incr_edge_idx
+                incr_edge_idx += 1
             edge2obj.append((int(edges[edge]), pi_idx))
             i += 1
     logging.info("end context query for %s", context_name)
