@@ -149,8 +149,8 @@ def compute_views_for_bpi14(k=None, weight=0.5, selection_method="mmr", duckdb_c
 
 def compute_views_for_order_management(k=None, weight=0.5, selection_method="mmr", duckdb_config=None):
     filename = 'data/order-management.jsonocel'
-    #object_types = ["orders", "items", "packages", "customers", "products"]
-    object_types = ["packages", "customers", "products"]
+    object_types = ["orders", "items", "packages", "customers", "products"]
+    #object_types = ["packages", "customers", "products"]
     k = len(object_types) if k is None else k
     db_file = db_path + "leading_type_views_order.duckdb"
     assert k <= len(object_types), "k must be less than the number of object types"
