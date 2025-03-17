@@ -36,9 +36,9 @@ def compute_indices_by_ekg_leading_types(neo4j_connection, temp_db_path, short_n
         if "threads" in duckdb_config:
             config["threads"] = duckdb_config["threads"]
 
-    temp_edges_path = os.path.join(os.path.dirname(temp_db_path), f"ekg_leading_types_edges_{short_name}.dbm")
-    with duckdb.connect(temp_db_path, config=config) as duckdb_conn, \
-            dbm.open(temp_edges_path, 'c') as edges_db:
+    #temp_edges_path = os.path.join(os.path.dirname(temp_db_path), f"ekg_leading_types_edges_{short_name}.dbm")
+    with duckdb.connect(temp_db_path, config=config) as duckdb_conn: #, \
+           # dbm.open(temp_edges_path, 'c') as edges_db:
 
         duckdb_conn.sql("DROP TABLE IF EXISTS viewmeta")
         duckdb_conn.sql(
@@ -52,7 +52,7 @@ def compute_indices_by_ekg_leading_types(neo4j_connection, temp_db_path, short_n
             duckdb_conn.sql("CREATE TABLE IF NOT EXISTS " + context_name + "(edge INTEGER, procExec String)")
         duckdb_conn.commit()
 
-        # edges = {}
+        edges_db = {}
         incr_idx = 0
         for cidx, entity_type in enumerate(entity_types):
             logging.info("Computing leading type context for %s", entity_type)
@@ -143,9 +143,18 @@ def compute_relation_index(contexts, neo4j_connection, duckdb_conn, cidx, contex
                     writer.writerows(edge2obj)
                 edge2obj = []
                 i = 0
-            edge = str((events[j]["id"], events[j + 1]["id"]))
+
+                if os.path.getsize(temp_file.name) > 50000000000:
+                    duckdb_conn.close()
+                    temp_file.close()
+                    #edges.close()
+                    raise Exception("Relation index too large")
+
+            #edge = str((events[j]["id"], events[j + 1]["id"]))
+            edge = (events[j]["id"], events[j + 1]["id"])
             if edge not in edges:
-                edges[edge] = str(incr_idx)
+                #edges[edge] = str(incr_idx)
+                edges[edge] = incr_idx
                 incr_idx += 1
             edge2obj.append((int(edges[edge]), pi_idx))
             i += 1

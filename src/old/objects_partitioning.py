@@ -63,34 +63,34 @@ print("computed connected components")
 print(connected_components)
 
 
- def partitions(set_):
-     if not set_:
-         yield []
-         return
+def partitions(set_):
+ if not set_:
+     yield []
+     return
 
-     for i in range(1 << len(set_) - 1):
-         parts = [[], []]
-         for item in set_:
-             parts[i & 1].append(item)
-             i >>= 1
-         for b in partitions(parts[1]):
-             yield [parts[0]] + b
-             # sort based on timestamps within partitions to emulate df relation?
+ for i in range(1 << len(set_) - 1):
+     parts = [[], []]
+     for item in set_:
+         parts[i & 1].append(item)
+         i >>= 1
+     for b in partitions(parts[1]):
+         yield [parts[0]] + b
+         # sort based on timestamps within partitions to emulate df relation?
 
- def dataframe_partitions(df):
-     indices = df.index.tolist()
-     for partition in partitions(indices):
-         yield [df.loc[part] for part in partition]
+def dataframe_partitions(df):
+ indices = df.index.tolist()
+ for partition in partitions(indices):
+     yield [df.loc[part] for part in partition]
 
- def sort_partitions(df, attribute):
-     for partition in dataframe_partitions(df):
-         sorted_partition = [part.sort_values(by=attribute) for part in partition]
-         yield sorted_partition
+def sort_partitions(df, attribute):
+ for partition in dataframe_partitions(df):
+     sorted_partition = [part.sort_values(by=attribute) for part in partition]
+     yield sorted_partition
 
- def subsets(partition):
-     for r in range(len(partition) + 1):
-         for subset in itertools.combinations(partition, r):
-             yield subset
+def subsets(partition):
+ for r in range(len(partition) + 1):
+     for subset in itertools.combinations(partition, r):
+         yield subset
 
 def k_partitions(df, k, attribute):
      all_partitions = list(sort_partitions(df, attribute))

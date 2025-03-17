@@ -1,14 +1,14 @@
-from duckdb.duckdb import query
 from promg import Query
 
-entity_id_attr = "id"
-entity_type_attr = "type"
-event_time_attr = "time"
+# for order log
+#entity_id_attr = "id"
+#entity_type_attr = "type"
+#event_time_attr = "time"
 
 # for BPI14
-# entity_id_attr = "uID"
-# entity_type_attr = "EventType"
-# event_time_attr = "timestamp"
+entity_id_attr = "uID"
+entity_type_attr = "EntityType"
+event_time_attr = "timestamp"
 
 '''
    Applied this query to Order dataset beforehand:
@@ -55,19 +55,54 @@ def get_object_pairs_query(ot1, ot2):
                      "type2": ot2
                  })
 
+def get_object_pairs_query_iterative(ot1, ot2, path_length=1):
+    match_string = ""
+    if path_length > 1:
+        for i in range(path_length- 1):
+            match_string += "-[:REL]-(:Entity)"
+
+    query_str = f'''
+                MATCH (ent1:Entity){match_string}-[:REL]-(ent2:Entity)
+                WHERE ent1.{entity_type_attr} = "$type1" AND ent2.{entity_type_attr} = "$type2"
+                RETURN DISTINCT ent1.{entity_id_attr} as o1, ent2.{entity_id_attr} as o2;
+               '''
+    return Query(query_str=query_str,
+                 template_string_parameters={
+                     "type1": ot1,
+                     "type2": ot2
+                 })
+
 
 def get_events_for_objects_query(o1, o2):
     query_str = f'''
                 MATCH (e : Event)-[:CORR]->(ent : Entity)
                 WHERE ent.{entity_id_attr} = "$o1" OR ent.{entity_id_attr} = "$o2"
-                ORDER BY e.{event_time_attr}, elementId(e)''' +\
-               '''WITH collect({id: elementId(e), timestamp: e.'''+ event_time_attr  +''') AS eventList
+                WITH e
+                ORDER BY e.{event_time_attr}, elementId(e) ''' +\
+               '''WITH collect({id: elementId(e), timestamp: e.'''+ event_time_attr  +'''}) AS eventList
                 RETURN eventList;
                '''
     return Query(query_str=query_str,
                  template_string_parameters={
                      "o1": o1,
                      "o2": o2
+                 })
+
+def get_events_for_many_object_pairs_query(obj_pairs):
+    query_str = f'''
+                WITH $obj_pairs as tuples
+                UNWIND tuples as tuple 
+                WITH tuple[0] as o1, tuple[1] as o2
+                MATCH (e : Event)-[:CORR]->(ent : Entity)
+                WHERE ent.{entity_id_attr} = o1 OR ent.{entity_id_attr} = o2
+                WITH o1, o2, e
+                ORDER BY e.{event_time_attr}, elementId(e) ''' +\
+               '''WITH o1, o2, collect({id: elementId(e), timestamp: e.'''+ event_time_attr  +'''}) AS eventList
+                RETURN o1, o2, eventList;
+               '''
+    return Query(query_str=query_str,
+                 template_string_parameters={
+                     "obj_pairs": obj_pairs
                  })
 
 def get_contexts_query_object_pair(ot1, ot2):
@@ -78,8 +113,8 @@ def get_contexts_query_object_pair(ot1, ot2):
                     MATCH (e : Event)-[:CORR]->(ent:Entity)
                     WHERE ent.{entity_id_attr} = uid1 OR ent.{entity_id_attr} = uid2''' +\
                 f''' WITH uid1, uid2, e
-                    ORDER BY e.{event_time_attr}, id(e) ''' +\
-                ''' WITH uid1, uid2, collect({id: id(e), timestamp: e.''' + event_time_attr +''') AS eventList
+                    ORDER BY e.{event_time_attr}, elementId(e) ''' +\
+                ''' WITH uid1, uid2, collect({id: elementId(e), timestamp: e.''' + event_time_attr +''') AS eventList
                     RETURN {id1: uid1, id2: uid2} AS context, eventList;
                 '''
     # '''
@@ -144,9 +179,9 @@ def get_contexts_query_single_object(ot1):
                     MATCH (ent : Entity)
                     WHERE ent.{entity_type_attr} = "$type1"
                     MATCH (e : Event)-[:CORR]->(ent : Entity)
-                    WITH ent, e 
-                    ORDER BY e.{event_time_attr}, id(e) ''' +\
-                ''' WITH id(ent) as entID, collect({id: id(e), timestamp: e.''' + event_time_attr +'''}) AS eventList
+                    WITH ent, e
+                    ORDER BY e.{event_time_attr}, elementId(e) ''' +\
+                ''' WITH id(ent) as entID, collect({id: elementId(e), timestamp: e.''' + event_time_attr +'''}) AS eventList
                     RETURN {id1: entID} AS context, eventList;
                 '''
     return Query(query_str=query_str,

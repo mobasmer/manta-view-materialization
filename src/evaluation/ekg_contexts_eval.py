@@ -36,7 +36,7 @@ def main(args):
         uri="bolt://localhost:7687",
         user="neo4j",
         password="12341234")
-
+    neo4j_connection.driver.get_session()
     compute_views(neo4j_connection, temp_db_path, contextdef=args.contextdef, weight=args.weight, selection_method=args.selection_method,
                   duckdb_config=duckdb_config, short_name=short_name)
 
