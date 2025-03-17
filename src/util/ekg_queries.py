@@ -46,7 +46,7 @@ def get_object_pairs_query_var_k(ot1, ot2, k=1):
 def get_object_pairs_query(ot1, ot2):
     query_str = f'''
                 MATCH (ent1:Entity)-[:REL*1..6]-(ent2:Entity)
-                WHERE ent1.{entity_type_attr} = "$type1" AND ent2.{entity_type_attr} = "$type2"
+                WHERE ent1.{entity_type_attr} = "$type1" AND ent2.{entity_type_attr} = "$type2" AND ent1 <> ent2
                 RETURN DISTINCT ent1.{entity_id_attr} as o1, ent2.{entity_id_attr} as o2;
                '''
     return Query(query_str=query_str,
@@ -63,7 +63,7 @@ def get_object_pairs_query_iterative(ot1, ot2, path_length=1):
 
     query_str = f'''
                 MATCH (ent1:Entity){match_string}-[:REL]-(ent2:Entity)
-                WHERE ent1.{entity_type_attr} = "$type1" AND ent2.{entity_type_attr} = "$type2"
+                WHERE ent1.{entity_type_attr} = "$type1" AND ent2.{entity_type_attr} = "$type2" AND ent1 <> ent2
                 RETURN DISTINCT ent1.{entity_id_attr} as o1, ent2.{entity_id_attr} as o2;
                '''
     return Query(query_str=query_str,
@@ -181,7 +181,7 @@ def get_contexts_query_single_object(ot1):
                     MATCH (e : Event)-[:CORR]->(ent : Entity)
                     WITH ent, e
                     ORDER BY e.{event_time_attr}, elementId(e) ''' +\
-                ''' WITH id(ent) as entID, collect({id: elementId(e), timestamp: e.''' + event_time_attr +'''}) AS eventList
+                ''' WITH elementId(ent) as entID, collect({id: elementId(e), timestamp: e.''' + event_time_attr +'''}) AS eventList
                     RETURN {id1: entID} AS context, eventList;
                 '''
     return Query(query_str=query_str,
