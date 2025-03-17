@@ -1,18 +1,13 @@
 import argparse
-import pickle
 from datetime import datetime
 import json
 import time
 import logging
 
-from src.strategies.enumerating_selection import EnumeratingSubsetSelector
-from src.strategies.mmr_selection import RankingSubsetSelector
-from src.strategies.db_mmr_selection import DBRankingSubsetSelector
+from src.old.enumerating_selection import EnumeratingSubsetSelector
+from src.old.mmr_selection import RankingSubsetSelector
 from src.util.similarity_measures import matching_similarities
-from src.view_generation.leading_type_views import load_ocel_by_leading_type, compute_indices_by_leading_type, \
-    compute_indices_by_leading_type_parallel
-from src.view_generation.ocel_leading_type import compute_indices_by_leading_type_db, \
-    compute_indices_by_leading_type_parallel_db
+from src.old.leading_type_views import compute_indices_by_leading_type
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 

@@ -29,14 +29,14 @@ def main(args):
         db_path = args.dbpath
 
     short_name = args.dataset
-    temp_db_path = f"data/temp/ekg_leading_types_{short_name}.duckdb"
+    temp_db_path = f"data/temp/ekg_{args.contextdef}_{short_name}.duckdb"
 
     neo4j_connection = DatabaseConnection(
         db_name="neo4j",
         uri="bolt://localhost:7687",
         user="neo4j",
         password="12341234")
-    neo4j_connection.driver.get_session()
+
     compute_views(neo4j_connection, temp_db_path, contextdef=args.contextdef, weight=args.weight, selection_method=args.selection_method,
                   duckdb_config=duckdb_config, short_name=short_name)
 
@@ -54,8 +54,6 @@ def parse_args():
     parser.add_argument("--contextdef", type=str, default="interact", help="Method for defining context (interact or leading)")
     return parser.parse_args()
 
-
-# TODO: check that event ids are taken from the event log / assigned deterministically
 def compute_views(neo4j_connection, temp_db_path, contextdef="interact", weight=0.5, selection_method="mmr",
               duckdb_config=None, short_name=""):
     start_time = time.time()
@@ -75,7 +73,7 @@ def compute_views(neo4j_connection, temp_db_path, contextdef="interact", weight=
 
     indexing_end_time = time.time()
     index_computation_time = indexing_end_time - start_time
-    logging.info("Done computing indices by leading type")
+    logging.info("Done computing indices by " + contextdef + " in " + str(index_computation_time) + " seconds")
 
     logging.info("Initializing ranking subset selector - computing scores")
     k = len(context_defs)
@@ -84,10 +82,12 @@ def compute_views(neo4j_connection, temp_db_path, contextdef="interact", weight=
                                                        duckdb_config=duckdb_config, file_id=result_file_id)
     score_comp_end_time = time.time()
     score_computation_time = score_comp_end_time - indexing_end_time
+    logging.info("Done scoring views in " + str(score_computation_time) + " seconds")
 
     logging.info("Selecting views by mmr")
     selected_views = ranking_subset_selection.select_view_indices(k)
     view_selection_time = time.time() - score_comp_end_time
+    logging.info("Done selecting views in " + str(view_selection_time) + " seconds")
     run_time = time.time() - start_time
 
     recorded_times = {

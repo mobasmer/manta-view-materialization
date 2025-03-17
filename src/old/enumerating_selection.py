@@ -2,7 +2,7 @@ import concurrent.futures
 import itertools
 import time
 
-from src.strategies.selection import SubsetSelector
+from src.old.selection import SubsetSelector
 from src.util.similarity_measures import matching_similarities
 
 

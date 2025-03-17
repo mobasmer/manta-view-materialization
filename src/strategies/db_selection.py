@@ -65,12 +65,14 @@ class DBSubsetSelector:
                             ot1 = self.object_types[i]
                             ot2 = self.object_types[j]
 
+                            # todo what to do with empty tables? what is the semantics?
                             df = con.sql(f'''WITH intersectEdges AS 
                                (SELECT obj1.procExec as o1contexts, obj2.procExec as o2contexts, COUNT(*) as intersectCounts
                                 FROM {ot1} obj1, {ot2} obj2
                                 WHERE obj1.edge = obj2.edge 
                                 GROUP BY obj1.procExec, obj2.procExec)
-                            SELECT intersectEdges.o1contexts, intersectEdges.o2contexts, intersectCounts / (obj1Counts.counts + obj2Counts.counts - intersectEdges.intersectCounts) as sim
+                            SELECT intersectEdges.o1contexts, intersectEdges.o2contexts, 
+                                CASE WHEN (obj1Counts.counts > 0 OR obj2Counts.counts > 0) THEN intersectCounts / (obj1Counts.counts + obj2Counts.counts - intersectEdges.intersectCounts) ELSE 0 END AS sim
                             FROM intersectEdges, {ot1 + "Counts"} obj1Counts, {ot2 + "Counts"} obj2Counts
                             WHERE intersectEdges.o1contexts = obj1Counts.procExec AND intersectEdges.o2contexts = obj2Counts.procExec''').fetchdf()
 

@@ -41,11 +41,15 @@ class DBRankingSubsetSelector(DBSubsetSelector):
                         "avg_sim_to_prev": None}
         else:
             # compute MMR score for each view and choose the one with the highest score
+            # todo adapt s.t. selected are not integrated in max sim?
             for idx, _ in enumerate(self.object_types):
                 if idx not in sel_indices:
                     similarities = [self.__get_score__(idx, j) for j in sel_indices]
                     max_sim_to_prev = max(similarities)
-                    mmr_score = self.weight * self.overall_scores[idx] - (1 - self.weight) * max_sim_to_prev
+                    sim_score = self.overall_scores[idx]
+                    #sim_score = sum([self.__get_score__(idx, j) for j in range(len(self.object_types)) \
+                    #                   if j != idx and j not in sel_indices])/n-
+                    mmr_score = self.weight * sim_score - (1 - self.weight) * max_sim_to_prev
                     if mmr_score > max_score:
                         max_score = mmr_score
                         next_view = idx

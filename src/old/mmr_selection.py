@@ -1,7 +1,6 @@
 import time
-from select import select
 
-from src.strategies.selection import SubsetSelector
+from src.old.selection import SubsetSelector
 from src.util.similarity_measures import jaccard_sim_edges
 
 
