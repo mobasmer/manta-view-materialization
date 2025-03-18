@@ -72,7 +72,7 @@ class DBSubsetSelector:
                                 WHERE obj1.edge = obj2.edge 
                                 GROUP BY obj1.procExec, obj2.procExec)
                             SELECT intersectEdges.o1contexts, intersectEdges.o2contexts, 
-                                intersectCounts / (obj1Counts.counts + obj2Counts.counts - intersectEdges.intersectCounts) AS sim
+                                CASE WHEN obj1Counts.counts > 0 OR obj2Counts.counts > 0 THEN (SELECT intersectEdges.intersectCounts / (obj1Counts.counts + obj2Counts.counts - intersectEdges.intersectCounts)) ELSE 0 END AS sim
                             FROM intersectEdges, {ot1 + "Counts"} obj1Counts, {ot2 + "Counts"} obj2Counts
                             WHERE intersectEdges.o1contexts = obj1Counts.procExec AND intersectEdges.o2contexts = obj2Counts.procExec''').fetchdf()
 
@@ -91,8 +91,6 @@ class DBSubsetSelector:
                             ot1_numProcExecs = con.sql(f'''SELECT numProcExecs FROM viewmeta WHERE objecttype = '{ot1}';''').fetchone()[0]
                             ot2_numProcExecs = con.sql(
                                 f'''SELECT numProcExecs FROM viewmeta WHERE objecttype = '{ot2}';''').fetchone()[0]
-                            #print(sum_max_sim)
-                            #print(ot1, ot2, ot1_numProcExecs, ot2_numProcExecs)
 
                             # Count the number of unique values in 'o1contexts' and 'o2contexts'
                             #num_unique_o1contexts = df['o1contexts'].nunique()

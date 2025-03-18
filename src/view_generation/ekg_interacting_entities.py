@@ -87,13 +87,8 @@ def compute_relation_index(neo4j_connection, context_def, context_name, duckdb_c
                     #edges[edge] = str(incr_idx)
                     edges[edge] = incr_edge_idx
                     incr_edge_idx += 1
-                edge2obj.append((int(edges[edge]), pi_idx))
+                edge2obj.append((edges[edge], pi_idx))
                 i += 1
-
-        if len(edge2obj) > 0:
-            with open(temp_file.name, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(edge2obj)
 
         logging.info("Finished context query for %s", context_name)
 

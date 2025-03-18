@@ -1,14 +1,14 @@
 from promg import Query
 
 # for order log
-#entity_id_attr = "id"
-#entity_type_attr = "type"
-#event_time_attr = "time"
+entity_id_attr = "id"
+entity_type_attr = "type"
+event_time_attr = "time"
 
 # for BPI14
-entity_id_attr = "uID"
-entity_type_attr = "EntityType"
-event_time_attr = "timestamp"
+#entity_id_attr = "uID"
+#entity_type_attr = "EntityType"
+#event_time_attr = "timestamp"
 
 '''
    Applied this query to Order dataset beforehand:
@@ -77,7 +77,7 @@ def get_events_for_objects_query(o1, o2):
     query_str = f'''
                 MATCH (e : Event)-[:CORR]->(ent : Entity)
                 WHERE ent.{entity_id_attr} = "$o1" OR ent.{entity_id_attr} = "$o2"
-                WITH e
+                WITH DISTINCT e
                 ORDER BY e.{event_time_attr}, elementId(e) ''' +\
                '''WITH collect({id: elementId(e), timestamp: e.'''+ event_time_attr  +'''}) AS eventList
                 RETURN eventList;
