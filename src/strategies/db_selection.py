@@ -72,7 +72,7 @@ class DBSubsetSelector:
                                 WHERE obj1.edge = obj2.edge 
                                 GROUP BY obj1.procExec, obj2.procExec)
                             SELECT intersectEdges.o1contexts, intersectEdges.o2contexts, 
-                                CASE WHEN (obj1Counts.counts > 0 OR obj2Counts.counts > 0) THEN intersectCounts / (obj1Counts.counts + obj2Counts.counts - intersectEdges.intersectCounts) ELSE 0 END AS sim
+                                intersectCounts / (obj1Counts.counts + obj2Counts.counts - intersectEdges.intersectCounts) AS sim
                             FROM intersectEdges, {ot1 + "Counts"} obj1Counts, {ot2 + "Counts"} obj2Counts
                             WHERE intersectEdges.o1contexts = obj1Counts.procExec AND intersectEdges.o2contexts = obj2Counts.procExec''').fetchdf()
 
@@ -85,14 +85,22 @@ class DBSubsetSelector:
                             # Sum the maximum 'sim' values
                             sum_max_sim = max_sim_per_o1contexts['sim'].sum() + max_sim_per_o2contexts['sim'].sum()
 
+                            # need to get num of all process executions in case one does not share any edge with another process execution
+                            # (i.e. not participating in the join above)
+                            # will be implicitly incl in sum through adding 0, but needs to be accounted for in total number of process executions
+                            ot1_numProcExecs = con.sql(f'''SELECT numProcExecs FROM viewmeta WHERE objecttype = '{ot1}';''').fetchone()[0]
+                            ot2_numProcExecs = con.sql(
+                                f'''SELECT numProcExecs FROM viewmeta WHERE objecttype = '{ot2}';''').fetchone()[0]
                             #print(sum_max_sim)
+                            #print(ot1, ot2, ot1_numProcExecs, ot2_numProcExecs)
 
                             # Count the number of unique values in 'o1contexts' and 'o2contexts'
-                            num_unique_o1contexts = df['o1contexts'].nunique()
-                            num_unique_o2contexts = df['o2contexts'].nunique()
+                            #num_unique_o1contexts = df['o1contexts'].nunique()
+                            #num_unique_o2contexts = df['o2contexts'].nunique()
+                            #print(ot1, ot2, num_unique_o1contexts, num_unique_o2contexts)
 
                             # Calculate the result
-                            sim = sum_max_sim / (num_unique_o1contexts + num_unique_o2contexts)
+                            sim = sum_max_sim / (ot1_numProcExecs + ot2_numProcExecs)
 
                             self.pairwise_score[i][j] = sim
                             self.pairwise_score[j][i] = sim

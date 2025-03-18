@@ -137,32 +137,6 @@ def compute_relation_index(obj_type, ocel, con, edges, temp_path=None):
 
     logging.info("Ingested relation index")
 
-def compute_indices_by_leading_type_parallel_db(filename, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
-    conn_name = "leading_type_views.duckdb"
-    with duckdb.connect(conn_name) as con:
-        con.sql("DROP TABLE IF EXISTS viewmeta")
-        con.sql("CREATE TABLE IF NOT EXISTS viewmeta(viewIdx INTEGER, objecttype STRING, numProcExecs INTEGER, numEvents INTEGER, AvgNumEventsPerTrace FLOAT)")
-
-        con.sql("DROP TABLE IF EXISTS edges")
-        con.sql("CREATE TABLE IF NOT EXISTS edges(edgeId INTEGER primary key, source INTEGER, target INTEGER)")
-
-        for object_type in object_types:
-            con.sql("DROP TABLE IF EXISTS " + object_type)
-            #con.sql("CREATE TABLE IF NOT EXISTS " + object_type + "(source INTEGER, target INTEGER, procExec INTEGER)")
-            con.sql("CREATE TABLE IF NOT EXISTS " + object_type + "(edge INTEGER, procExec INTEGER)")
-
-    #con = sqlite3.connect("leading_type_views.db")
-    #cursor = con.cursor()
-    #cursor.execute("DROP TABLE IF EXISTS viewmeta")
-    #cursor.execute(
-    #    "CREATE TABLE IF NOT EXISTS viewmeta(viewIdx, objecttype, numProcExecs, numEvents, AvgNumEventsPerTrace)")
-
-    with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
-        futures = [executor.submit(process_object_type, i, obj_type, filename, conn_name) for i, obj_type in enumerate(object_types)]
-        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
-                           desc="Collecting relation indices"):
-            future.result()
-
 def process_object_type(i, obj_type, filename, conn_name, file_type="json", object_types=None, act_name=None, time_name=None, sep=None):
     #with sqlite3.connect(conn_name) as con:
     with duckdb.connect(conn_name, read_only=False) as con:
