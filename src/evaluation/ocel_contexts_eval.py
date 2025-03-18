@@ -142,12 +142,12 @@ def compute_views_for_bpi17_csv(k=None, weight=0.5, selection_method="mmr", duck
                   selection_method=selection_method, duckdb_config=duckdb_config, short_name="BPI17csv")
 
 
-def compute_views_for_bpi14(k=None, weight=0.5, selection_method="mmr", duckdb_config=None, filter_date="2013-11-30T23:59:59"):
+def compute_views_for_bpi14(k=None, weight=0.5, selection_method="mmr", duckdb_config=None, filter_date="2013-09-30T23:59:59"):
     # data = load_ocel_from_file("data/order-management.jsonocel")
     data = load_ocel_from_file("data/BPIC14.jsonocel.zip")
-    filtered_data = filter_ocel_json(data, start_time=("2013-11-01T00:00:01"), end_time=filter_date)
+    filtered_data = filter_ocel_json(data, start_time="2013-01-01T00:00:01", end_time=filter_date)
 
-    filename = f'data/bpi14-filtered-{filter_date.split("T")[0]}-Nov2013.jsonocel'
+    filename = f'data/bpi14-filtered-{filter_date.split("T")[0]}.jsonocel'
     with open(filename, "w") as f:
         f.write(json.dumps(filtered_data, indent=4))
 
