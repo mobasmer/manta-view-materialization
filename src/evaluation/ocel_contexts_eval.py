@@ -8,6 +8,7 @@ import logging
 import duckdb
 
 from src.strategies.db_mmr_selection import DBRankingSubsetSelector
+from src.util.filter_log import filter_ocel_json, load_ocel_from_file
 from src.view_generation.ocel_leading_type import compute_indices_by_leading_type_db
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -30,7 +31,10 @@ def main(args):
     if args.dataset == "bpi17":
         compute_views_for_bpi17(duckdb_config=duckdb_config)
     elif args.dataset == "bpi14":
-        compute_views_for_bpi14(duckdb_config=duckdb_config)
+        if args.filterdate:
+            compute_views_for_bpi14(duckdb_config=duckdb_config, filter_date=args.filterdate)
+        else:
+            compute_views_for_bpi14(duckdb_config=duckdb_config)
     elif args.dataset == "order":
         compute_views_for_order_management(duckdb_config=duckdb_config)
     elif args.dataset.startswith("bpi15"):
@@ -50,6 +54,7 @@ def parse_args():
     parser.add_argument("--maxmem", type=str, default=None, help="Max available memory for DuckDB (must be KB, MB, GB)")
     parser.add_argument("--threads", type=int, default=None, help="Max number of threads for DuckDB")
     parser.add_argument("--dbpath", type=str, default=None, help="Max available memory for DuckDB (must be KB, MB, GB)")
+    parser.add_argument("--filterdate", type=str, default="2013-09-30T23:59:59", help="Filter date for BPI14")
     return parser.parse_args()
 
 
@@ -137,11 +142,18 @@ def compute_views_for_bpi17_csv(k=None, weight=0.5, selection_method="mmr", duck
                   selection_method=selection_method, duckdb_config=duckdb_config, short_name="BPI17csv")
 
 
-def compute_views_for_bpi14(k=None, weight=0.5, selection_method="mmr", duckdb_config=None):
-    filename = 'data/BPIC14.jsonocel'
+def compute_views_for_bpi14(k=None, weight=0.5, selection_method="mmr", duckdb_config=None, filter_date="2013-09-30T23:59:59"):
+    # data = load_ocel_from_file("data/order-management.jsonocel")
+    data = load_ocel_from_file("data/BPIC14.jsonocel.zip")
+    filtered_data = filter_ocel_json(data, start_time=("2013-01-01T00:00:01"), end_time=filter_date)
+
+    filename = f'data/bpi14-filtered-{filter_date.split("T")[0]}.jsonocel'
+    with open(filename, "w") as f:
+        f.write(json.dumps(filtered_data, indent=4))
+
     object_types = ["ConfigurationItem", "ServiceComponent", "Incident", "Interaction", "Change", "Case_R", "KM"]
     k = len(object_types) if k is None else k
-    db_file = db_path + "leading_type_views_BPI14.duckdb"
+    db_file = db_path + f"leading_type_views_bpi14-filtered-{filter_date.split('T')[0]}.duckdb"
     assert k <= len(object_types), "k must be less than the number of object types"
     compute_views(filename, object_types, db_file, k=k, weight=weight, selection_method=selection_method,
                   duckdb_config=duckdb_config, short_name="BPI14")
