@@ -1,0 +1,124 @@
+{
+    "filename": "data/bpi14-filtered-2013-09-30.jsonocel",
+    "method": "mmr-leading-type",
+    "selected_views": [
+        {
+            "object_type": "Interaction",
+            "num_process_executions": 22900,
+            "num_edges": 73518,
+            "score info": {
+                "sim_score": 0.700789391063038,
+                "mmr_score": 0.700789391063038,
+                "max_sim_to_prev": null,
+                "min_sim_to_prev": null,
+                "avg_sim_to_prev": null
+            },
+            "time": 697.4579238891602,
+            "position": 0,
+            "num_of_events_total-dupl": 74119247,
+            "avg_num_of_events_per_trace": 3236.6484375
+        },
+        {
+            "object_type": "Change",
+            "num_process_executions": 284,
+            "num_edges": 55166,
+            "score info": {
+                "sim_score": 0.547091191921971,
+                "mmr_score": 0.08215711906712214,
+                "max_sim_to_prev": 0.3827769537877267,
+                "min_sim_to_prev": 0.3827769537877267,
+                "avg_sim_to_prev": 0.3827769537877267
+            },
+            "time": 697.4579429626465,
+            "position": 1,
+            "num_of_events_total-dupl": 879864,
+            "avg_num_of_events_per_trace": 3098.11279296875
+        },
+        {
+            "object_type": "Case_R",
+            "num_process_executions": 128,
+            "num_edges": 70601,
+            "score info": {
+                "sim_score": 0.41023800284501044,
+                "mmr_score": -0.0010186851484274007,
+                "max_sim_to_prev": 0.41227537314186524,
+                "min_sim_to_prev": 0.1685725538764665,
+                "avg_sim_to_prev": 0.2904239635091659
+            },
+            "time": 697.4579558372498,
+            "position": 2,
+            "num_of_events_total-dupl": 910700,
+            "avg_num_of_events_per_trace": 7114.84375
+        },
+        {
+            "object_type": "Incident",
+            "num_process_executions": 1147,
+            "num_edges": 70543,
+            "score info": {
+                "sim_score": 0.6646993774586737,
+                "mmr_score": -0.034357600511339126,
+                "max_sim_to_prev": 0.7334145784813519,
+                "min_sim_to_prev": 0.4979399837056613,
+                "avg_sim_to_prev": 0.5838184666256433
+            },
+            "time": 697.4579639434814,
+            "position": 3,
+            "num_of_events_total-dupl": 5071218,
+            "avg_num_of_events_per_trace": 4421.28857421875
+        },
+        {
+            "object_type": "ServiceComponent",
+            "num_process_executions": 237,
+            "num_edges": 73082,
+            "score info": {
+                "sim_score": 0.595986426037115,
+                "mmr_score": -0.08813490512192057,
+                "max_sim_to_prev": 0.7722562362809562,
+                "min_sim_to_prev": 0.1635869527250982,
+                "avg_sim_to_prev": 0.49902763719850163
+            },
+            "time": 697.4579699039459,
+            "position": 4,
+            "num_of_events_total-dupl": 526993,
+            "avg_num_of_events_per_trace": 2223.59912109375
+        },
+        {
+            "object_type": "ConfigurationItem",
+            "num_process_executions": 1658,
+            "num_edges": 73053,
+            "score info": {
+                "sim_score": 0.6996816352049205,
+                "mmr_score": -0.10583052050900882,
+                "max_sim_to_prev": 0.9113426762229382,
+                "min_sim_to_prev": 0.15636049845757638,
+                "avg_sim_to_prev": 0.6139969438547275
+            },
+            "time": 697.4579749107361,
+            "position": 5,
+            "num_of_events_total-dupl": 4452217,
+            "avg_num_of_events_per_trace": 2685.293701171875
+        },
+        {
+            "object_type": "KM",
+            "num_process_executions": 1551,
+            "num_edges": 73518,
+            "score info": {
+                "sim_score": 0.6810072963162622,
+                "mmr_score": -0.13904855149992207,
+                "max_sim_to_prev": 0.9591043993161064,
+                "min_sim_to_prev": 0.3318719356832771,
+                "avg_sim_to_prev": 0.6278418457023058
+            },
+            "time": 697.4579789638519,
+            "position": 6,
+            "num_of_events_total-dupl": 4196093,
+            "avg_num_of_events_per_trace": 2705.411376953125
+        }
+    ],
+    "runtimes": {
+        "index_computation_time": 371.5523769855499,
+        "score_computation_time": 325.90549182891846,
+        "view_selection_time": 0.00011014938354492188,
+        "run_time": 697.4579980373383
+    }
+}

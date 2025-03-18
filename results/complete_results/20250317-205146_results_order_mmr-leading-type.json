@@ -1,0 +1,92 @@
+{
+    "filename": "data/order-management.jsonocel",
+    "method": "mmr-leading-type",
+    "selected_views": [
+        {
+            "object_type": "orders",
+            "num_process_executions": 2000,
+            "num_edges": 99109,
+            "score info": {
+                "sim_score": 0.8018043676567352,
+                "mmr_score": 0.8018043676567352,
+                "max_sim_to_prev": null,
+                "min_sim_to_prev": null,
+                "avg_sim_to_prev": null
+            },
+            "time": 5215.953776836395,
+            "position": 0,
+            "num_of_events_total-dupl": 31809160,
+            "avg_num_of_events_per_trace": 15904.580078125
+        },
+        {
+            "object_type": "customers",
+            "num_process_executions": 17,
+            "num_edges": 99109,
+            "score info": {
+                "sim_score": 0.7224756233918678,
+                "mmr_score": 0.033498729853014886,
+                "max_sim_to_prev": 0.655478163685838,
+                "min_sim_to_prev": 0.655478163685838,
+                "avg_sim_to_prev": 0.655478163685838
+            },
+            "time": 5215.953795909882,
+            "position": 1,
+            "num_of_events_total-dupl": 380239,
+            "avg_num_of_events_per_trace": 22367.0
+        },
+        {
+            "object_type": "items",
+            "num_process_executions": 8159,
+            "num_edges": 99109,
+            "score info": {
+                "sim_score": 0.7724167672674562,
+                "mmr_score": -0.05085497216426649,
+                "max_sim_to_prev": 0.8741267115959892,
+                "min_sim_to_prev": 0.5562452239572003,
+                "avg_sim_to_prev": 0.7151859677765948
+            },
+            "time": 5215.953809738159,
+            "position": 2,
+            "num_of_events_total-dupl": 114628998,
+            "avg_num_of_events_per_trace": 14049.392578125
+        },
+        {
+            "object_type": "packages",
+            "num_process_executions": 1325,
+            "num_edges": 99109,
+            "score info": {
+                "sim_score": 0.7001970840605023,
+                "mmr_score": -0.0875707631522194,
+                "max_sim_to_prev": 0.8753386103649411,
+                "min_sim_to_prev": 0.4006547293163006,
+                "avg_sim_to_prev": 0.6998068243012389
+            },
+            "time": 5215.953814029694,
+            "position": 3,
+            "num_of_events_total-dupl": 14285756,
+            "avg_num_of_events_per_trace": 10781.703125
+        },
+        {
+            "object_type": "products",
+            "num_process_executions": 20,
+            "num_edges": 99109,
+            "score info": {
+                "sim_score": 0.722785613519464,
+                "mmr_score": -0.138607193240268,
+                "max_sim_to_prev": 1.0,
+                "min_sim_to_prev": 0.40156494739879534,
+                "avg_sim_to_prev": 0.65348201689933
+            },
+            "time": 5215.953818082809,
+            "position": 4,
+            "num_of_events_total-dupl": 447340,
+            "avg_num_of_events_per_trace": 22367.0
+        }
+    ],
+    "runtimes": {
+        "index_computation_time": 1090.7053277492523,
+        "score_computation_time": 4125.248391151428,
+        "view_selection_time": 9.918212890625e-05,
+        "run_time": 5215.954256772995
+    }
+}

@@ -1,0 +1,204 @@
+{
+    "filename": "neo4j_bpi14",
+    "method": "mmr-interacting_entities",
+    "selected_views": [
+        {
+            "object_type": "ConfigurationItem___ServiceComponent",
+            "num_process_executions": 2142,
+            "num_edges": 31214,
+            "score info": {
+                "sim_score": 0.19769173277257626,
+                "mmr_score": 0.19769173277257626,
+                "max_sim_to_prev": null,
+                "min_sim_to_prev": null,
+                "avg_sim_to_prev": null
+            },
+            "time": 1790.060832977295,
+            "position": 0,
+            "num_of_events_total-dupl": 870586,
+            "avg_num_of_events_per_trace": 406.43603515625
+        },
+        {
+            "object_type": "Incident___Interaction",
+            "num_process_executions": 768,
+            "num_edges": 8559,
+            "score info": {
+                "sim_score": 0.15698645230373917,
+                "mmr_score": 0.07849322615186959,
+                "max_sim_to_prev": 0.0,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.0
+            },
+            "time": 1790.060898065567,
+            "position": 1,
+            "num_of_events_total-dupl": 10990,
+            "avg_num_of_events_per_trace": 14.309895515441895
+        },
+        {
+            "object_type": "ConfigurationItem___ConfigurationItem",
+            "num_process_executions": 227470,
+            "num_edges": 193181,
+            "score info": {
+                "sim_score": 0.09864429320665909,
+                "mmr_score": 0.04491498734235913,
+                "max_sim_to_prev": 0.008814318521940822,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.004407159260970411
+            },
+            "time": 1790.060951948166,
+            "position": 2,
+            "num_of_events_total-dupl": 1680818,
+            "avg_num_of_events_per_trace": 7.389185428619385
+        },
+        {
+            "object_type": "Case_R",
+            "num_process_executions": 128,
+            "num_edges": 16929,
+            "score info": {
+                "sim_score": 0.09098103617209341,
+                "mmr_score": 0.02847113848167313,
+                "max_sim_to_prev": 0.03403875920874715,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.011346253069582384
+            },
+            "time": 1790.0610048770905,
+            "position": 3,
+            "num_of_events_total-dupl": 17057,
+            "avg_num_of_events_per_trace": 133.2578125
+        },
+        {
+            "object_type": "Change",
+            "num_process_executions": 284,
+            "num_edges": 292,
+            "score info": {
+                "sim_score": 0.09025414763383993,
+                "mmr_score": 0.021719102578447235,
+                "max_sim_to_prev": 0.04681594247694546,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.01196483474930645
+            },
+            "time": 1790.061058998108,
+            "position": 4,
+            "num_of_events_total-dupl": 576,
+            "avg_num_of_events_per_trace": 2.0281689167022705
+        },
+        {
+            "object_type": "Interaction",
+            "num_process_executions": 22900,
+            "num_edges": 16640,
+            "score info": {
+                "sim_score": 0.09513056488927947,
+                "mmr_score": 0.021648248395002116,
+                "max_sim_to_prev": 0.05183406809927524,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.010707994908360854
+            },
+            "time": 1790.0611081123352,
+            "position": 5,
+            "num_of_events_total-dupl": 39540,
+            "avg_num_of_events_per_trace": 1.726637601852417
+        },
+        {
+            "object_type": "KM",
+            "num_process_executions": 1551,
+            "num_edges": 37989,
+            "score info": {
+                "sim_score": 0.12440670107918095,
+                "mmr_score": 0.013043647388408616,
+                "max_sim_to_prev": 0.09831940630236372,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.035034862001804265
+            },
+            "time": 1790.061156988144,
+            "position": 6,
+            "num_of_events_total-dupl": 39540,
+            "avg_num_of_events_per_trace": 25.49323081970215
+        },
+        {
+            "object_type": "Interaction___Interaction",
+            "num_process_executions": 1036,
+            "num_edges": 970,
+            "score info": {
+                "sim_score": 0.09729480076037332,
+                "mmr_score": -0.00018303944904687897,
+                "max_sim_to_prev": 0.09766087965846708,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.016546552232145195
+            },
+            "time": 1790.0612020492554,
+            "position": 7,
+            "num_of_events_total-dupl": 3194,
+            "avg_num_of_events_per_trace": 3.0830116271972656
+        },
+        {
+            "object_type": "ConfigurationItem",
+            "num_process_executions": 1658,
+            "num_edges": 21401,
+            "score info": {
+                "sim_score": 0.12583183579550572,
+                "mmr_score": -0.012050104157920294,
+                "max_sim_to_prev": 0.1499320441113463,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.04636130069552062
+            },
+            "time": 1790.0612421035767,
+            "position": 8,
+            "num_of_events_total-dupl": 23059,
+            "avg_num_of_events_per_trace": 13.907720565795898
+        },
+        {
+            "object_type": "ServiceComponent___ServiceComponent",
+            "num_process_executions": 10,
+            "num_edges": 7113,
+            "score info": {
+                "sim_score": 0.10063329442420225,
+                "mmr_score": -0.032542399142201785,
+                "max_sim_to_prev": 0.16571809270860582,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.019090754662901655
+            },
+            "time": 1790.061278104782,
+            "position": 9,
+            "num_of_events_total-dupl": 14236,
+            "avg_num_of_events_per_trace": 1423.5999755859375
+        },
+        {
+            "object_type": "Incident",
+            "num_process_executions": 1147,
+            "num_edges": 15910,
+            "score info": {
+                "sim_score": 0.15678755044865847,
+                "mmr_score": -0.2225983819636791,
+                "max_sim_to_prev": 0.6019843143760166,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.08814506053839019
+            },
+            "time": 1790.0613000392914,
+            "position": 10,
+            "num_of_events_total-dupl": 17057,
+            "avg_num_of_events_per_trace": 14.870967864990234
+        },
+        {
+            "object_type": "ServiceComponent",
+            "num_process_executions": 237,
+            "num_edges": 22822,
+            "score info": {
+                "sim_score": 0.1855682041828178,
+                "mmr_score": -0.3870552090798718,
+                "max_sim_to_prev": 0.9596786223425614,
+                "min_sim_to_prev": 0.0,
+                "avg_sim_to_prev": 0.11152895001761937
+            },
+            "time": 1790.0613150596619,
+            "position": 11,
+            "num_of_events_total-dupl": 23059,
+            "avg_num_of_events_per_trace": 97.29535675048828
+        }
+    ],
+    "runtimes": {
+        "index_computation_time": 1787.8878450393677,
+        "score_computation_time": 2.172947883605957,
+        "view_selection_time": 0.0005221366882324219,
+        "run_time": 1790.0613329410553
+    }
+}
