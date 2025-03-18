@@ -46,6 +46,7 @@ def filter_ocel_json(data: dict, start_time="", end_time="", num_events=None, sa
 
     # create a new dictionary with the filtered events
     filtered_events = {event_id: event for event_id, event in event_list}
+    print(f"Returned {len(filtered_events)} events")
 
     # find all objects referenced by the filtered events
     referenced_objects = set()
@@ -58,6 +59,8 @@ def filter_ocel_json(data: dict, start_time="", end_time="", num_events=None, sa
         if obj_id in referenced_objects
     }
 
+    print(f"Returned {len(filtered_objects)} objects")
+
     filtered_data = {
         **data,
         "ocel:events": filtered_events,
@@ -69,9 +72,9 @@ def filter_ocel_json(data: dict, start_time="", end_time="", num_events=None, sa
 
 if __name__ == "__main__":
     # data = load_ocel_from_file("data/order-management.jsonocel")
-    data = load_ocel_from_file("data/BPIC14.jsonocel.zip")
-    filtered_data = filter_ocel_json(data, num_events=1000)
-
-    with open("data/order-management-filtered.jsonocel", "w") as f:
+    data = load_ocel_from_file("../../data/BPIC14.jsonocel.zip")
+    filtered_data = filter_ocel_json(data, start_time="2013-11-01T00:00:01", end_time="2013-11-30T23:59:59")
+    #filtered_data = filter_ocel_json(data, num_events=1000000, sampling=True)
+    with open("../../data/bpi14-filtered.jsonocel", "w") as f:
         f.write(json.dumps(filtered_data, indent=4))
-    print(json.dumps(filtered_data, indent=4))
+    #print(json.dumps(filtered_data, indent=4))
