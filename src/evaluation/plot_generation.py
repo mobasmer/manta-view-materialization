@@ -1,5 +1,6 @@
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
@@ -20,6 +21,9 @@ def plot_score_evolution(file_path, name, file_id):
     max_scores = [view['score info']['max_sim_to_prev'] for view in data['selected_views']]
     acc_sim = __get_accumulated_similarity(file_path, file_id)
 
+    # create integer values for the x-axis
+    xtick_values = [i for i in range(1, len(positions)+1)]
+
     # Plot the data
     plt.figure(figsize=(10, 6))
     sns.lineplot(x=positions, y=acc_sim, marker='o', linestyle='-', color='b', label='Accumulated Similarity (Avg)')
@@ -30,6 +34,7 @@ def plot_score_evolution(file_path, name, file_id):
     plt.ylabel('Score', fontsize=16)
     plt.title(f'Development of Scores over k ({name})', fontsize=18)
     plt.legend(fontsize=14)
+    plt.xticks(xtick_values)
 
     # Customize the spines
     plt.grid(False)
@@ -59,8 +64,55 @@ def __get_accumulated_similarity(file_path, file_id):
 
     return acc_similarity_scores
 
+
+def plot_runtime_breakdown(file_paths):
+    labels = []
+    index_time = []
+    score_time = []
+    view_time = []
+
+    def extract_dataset_name(dataset_name):
+        if dataset_name.startswith('data/'):
+            return dataset_name.strip(".jsonocel").split('/')[-1]
+        return dataset_name
+
+    for file_path in file_paths:
+        with open(file_path, 'r') as f:
+            content = json.load(f)
+            dataset = extract_dataset_name(content.get('filename', 'Unknown'))
+            method = content.get('method', 'Unknown')
+            runtimes = content.get('runtimes', {})
+
+            labels.append(f"{dataset}\n{method}")
+            index_time.append(runtimes.get('index_computation_time', 0))
+            score_time.append(runtimes.get('score_computation_time', 0))
+            view_time.append(runtimes.get('view_selection_time', 0))
+
+    x = np.arange(len(labels))
+    width = 0.6
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(x, index_time, width, label='Index Computation Time')
+    ax.bar(x, score_time, width, bottom=index_time, label='Score Computation Time')
+    ax.bar(x, view_time, width, bottom=np.array(index_time) + np.array(score_time), label='View Selection Time')
+
+    ax.set_xlabel('Dataset and Method')
+    ax.set_ylabel('Time (seconds)')
+    ax.set_title('Stacked Bar Chart of Runtime Components')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=45)
+    ax.legend(title="Runtime Component")
+
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == '__main__':
     plot_score_evolution('results/complete_results/20250317-205146_results_order_mmr-leading-type.json',"Order, Leading", "20250317-205146")
     plot_score_evolution('results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json', "BPI14 (Sep), Leading", "20250317-231201")
     plot_score_evolution('results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json',
                          "BPI14 (Sep), Interact", "20250318-132650_bpi14_mmr_interacting_entities")
+
+    # plot_runtime_breakdown(['results/complete_results/20250317-205146_results_order_mmr-leading-type.json',
+    #                         'results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json',
+    #                        'results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json'])
