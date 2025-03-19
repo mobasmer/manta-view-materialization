@@ -6,9 +6,11 @@ import tempfile
 import dbm
 
 import duckdb
+from tqdm import tqdm
 
 from src.util.ekg_queries import get_entity_types_query, get_contexts_query_single_object, get_object_pairs_query, \
-    get_events_for_objects_query, entity_type_attr, get_object_pairs_query_iterative
+    get_events_for_objects_query, entity_type_attr, get_object_pairs_query_iterative, \
+    get_events_for_many_object_pairs_query
 from src.util.query_result_parser import parse_to_list
 
 
@@ -17,7 +19,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 incr_edge_idx = 0
 incr_context_idx = 0
 
-def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name="", duckdb_config=None, entity_id_attr="id"):
+def compute_indices_by_interacting_entities(neo4j_connection, temp_db_path, short_name="", duckdb_config=None):
     result = neo4j_connection.exec_query(get_entity_types_query)
     entity_types = parse_to_list(result, "e." + entity_type_attr)
 
@@ -95,47 +97,82 @@ def compute_relation_index(neo4j_connection, context_def, context_name, duckdb_c
     else:
         logging.info("start context query for %s", context_name)
         #obj_pair_result = neo4j_connection.exec_query(get_object_pairs_query, **{"ot1": ot1, "ot2": ot2})
+        logging.info("Collecting contexts for %s", context_name)
         obj_pairs = set()
-        for path_length in range(1,11):
-            obj_pair_result = neo4j_connection.exec_query(get_object_pairs_query_iterative, **{"ot1": ot1, "ot2": ot2, "path_length": path_length})
+        for path_length in range(1,3):
+            obj_pair_result = neo4j_connection.exec_query(get_object_pairs_query_iterative,
+                                                      **{"ot1": ot1, "ot2": ot2, "path_length": path_length})
             obj_pairs.update([(record["o1"], record["o2"]) for record in obj_pair_result])
+        #obj_pairs = [[record["o1"], record["o2"]] for record in obj_pair_result]
         num_proc_execs = len(obj_pairs)
         num_events = 0
-        logging.info("Collecting contexts for %s", context_name)
-        #obj_pairs = [[o1, o2] for o1, o2 in obj_pairs]
-        #obj_pairs = [(record["o1"], record["o2"]) for record in obj_pair_result]
+        obj_pairs = [[o1, o2] for o1, o2 in obj_pairs]
         #obj_pair_events = neo4j_connection.exec_query(get_events_for_many_object_pairs_query, **{"obj_pairs": obj_pairs})
         logging.info("query done")
-        for pi_idx, obj_pair in enumerate(obj_pairs):
-            o1, o2 = obj_pair
-            #query_result = neo4j_connection.exec_query(get_events_for_objects_query, **{"o1": obj_pair["o1"], "o2": obj_pair["o1"]})
-            query_result = neo4j_connection.exec_query(get_events_for_objects_query, **{"o1": o1, "o2": o2})
-            events = query_result[0]['eventList']
-        #for pi_idx, obj_pair_res in enumerate(obj_pair_events):
-        #    events = obj_pair_res['eventList']
-            num_events += len(events)
-            for j in range(len(events) - 1):
-                if i == batch_size:
-                    with open(temp_file.name, 'a', newline='') as csvfile:
-                        writer = csv.writer(csvfile)
-                        writer.writerows(edge2obj)
-                    edge2obj = []
-                    i = 0
+        for batch_nr, batch in tqdm(enumerate(batches(obj_pairs, 150))):
+            obj_pairs = [[o1, o2] for o1, o2 in batch]
+            obj_pair_events = neo4j_connection.exec_query(get_events_for_many_object_pairs_query, **{"obj_pairs": obj_pairs})
 
-                    if os.path.getsize(temp_file.name) > 50000000000:
-                        duckdb_conn.close()
-                        temp_file.close()
-                        #edges.close()
-                        raise Exception("Relation index too large")
+            for batch_elem_nr, obj_pair in enumerate(obj_pair_events):
+                pi_idx = batch_nr * 100 + batch_elem_nr
+                events = obj_pair['eventList']
+                num_events += len(events)
+                for k in range(len(events) - 1):
+                    if i == batch_size:
+                        with open(temp_file.name, 'a', newline='') as csvfile:
+                            writer = csv.writer(csvfile)
+                            writer.writerows(edge2obj)
+                        edge2obj = []
+                        i = 0
 
-                #edge = str((events[j]["id"], events[j + 1]["id"]))
-                edge = (events[j]["id"], events[j + 1]["id"])
-                if edge not in edges:
-                    #edges[edge] = str(incr_edge_idx)
-                    edges[edge] = incr_edge_idx
-                    incr_edge_idx += 1
-                edge2obj.append((edges[edge], pi_idx))
-                i += 1
+                        if os.path.getsize(temp_file.name) > 50000000000:
+                            duckdb_conn.close()
+                            temp_file.close()
+                            #edges.close()
+                            raise Exception("Relation index too large")
+
+                    #edge = str((events[j]["id"], events[j + 1]["id"]))
+                    edge = (events[k]["id"], events[k + 1]["id"])
+                    if edge not in edges:
+                        #edges[edge] = str(incr_edge_idx)
+                        edges[edge] = incr_edge_idx
+                        incr_edge_idx += 1
+                    edge2obj.append((edges[edge], pi_idx))
+                    i += 1
+        #
+        #
+        #
+        #
+        # for pi_idx, obj_pair in enumerate(obj_pairs):
+        #     o1, o2 = obj_pair
+        #     #query_result = neo4j_connection.exec_query(get_events_for_objects_query, **{"o1": obj_pair["o1"], "o2": obj_pair["o1"]})
+        #     query_result = neo4j_connection.exec_query(get_events_for_objects_query, **{"o1": o1, "o2": o2})
+        #     events = query_result[0]['eventList']
+        # #for pi_idx, obj_pair_res in enumerate(obj_pair_events):
+        # #    events = obj_pair_res['eventList']
+        #     num_events += len(events)
+        #     for j in range(len(events) - 1):
+        #         if i == batch_size:
+        #             with open(temp_file.name, 'a', newline='') as csvfile:
+        #                 writer = csv.writer(csvfile)
+        #                 writer.writerows(edge2obj)
+        #             edge2obj = []
+        #             i = 0
+        #
+        #             if os.path.getsize(temp_file.name) > 50000000000:
+        #                 duckdb_conn.close()
+        #                 temp_file.close()
+        #                 #edges.close()
+        #                 raise Exception("Relation index too large")
+        #
+        #         #edge = str((events[j]["id"], events[j + 1]["id"]))
+        #         edge = (events[j]["id"], events[j + 1]["id"])
+        #         if edge not in edges:
+        #             #edges[edge] = str(incr_edge_idx)
+        #             edges[edge] = incr_edge_idx
+        #             incr_edge_idx += 1
+        #         edge2obj.append((edges[edge], pi_idx))
+        #         i += 1
         logging.info("Collected contexts for %s", context_name)
 
     # write remaining edges
@@ -172,3 +209,9 @@ def compute_relation_index(neo4j_connection, context_def, context_name, duckdb_c
     os.remove(temp_file.name)
 
     logging.info("Ingested relation index for context %s", context_name)
+
+
+
+def batches(contexts, batch_size):
+    for x in range(0, len(contexts), batch_size):
+        yield contexts[x:x + 10]
