@@ -4,3 +4,4 @@ data/BPIC17.jsonocel
 data/temp/
 .DS_Store
 */.DS_Store
+results/*.json

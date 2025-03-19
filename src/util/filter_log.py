@@ -73,7 +73,7 @@ def filter_ocel_json(data: dict, start_time="", end_time="", num_events=None, sa
 if __name__ == "__main__":
     # data = load_ocel_from_file("data/order-management.jsonocel")
     data = load_ocel_from_file("../../data/BPIC14.jsonocel.zip")
-    filtered_data = filter_ocel_json(data, start_time="2013-11-01T00:00:01", end_time="2013-11-30T23:59:59")
+    filtered_data = filter_ocel_json(data, start_time="2013-01-01T00:00:01", end_time="2013-09-30T23:59:59")
     #filtered_data = filter_ocel_json(data, num_events=1000000, sampling=True)
     with open("../../data/bpi14-filtered.jsonocel", "w") as f:
         f.write(json.dumps(filtered_data, indent=4))

@@ -2,12 +2,12 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import pandas as pd
-from matplotlib.ticker import MaxNLocator
 
 plot_file_path = 'results/plots/'
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
+plt.rcParams['xtick.labelsize'] = 14
+plt.rcParams['ytick.labelsize'] = 14
 
 # Extract sim scores and positions
 def plot_score_evolution(file_path, name, file_id):
@@ -23,17 +23,18 @@ def plot_score_evolution(file_path, name, file_id):
 
     # create integer values for the x-axis
     xtick_values = [i for i in range(1, len(positions)+1)]
-
     # Plot the data
     plt.figure(figsize=(10, 6))
-    sns.lineplot(x=positions, y=acc_sim, marker='o', linestyle='-', color='b', label='Accumulated Similarity (Avg)')
-    sns.lineplot(x=positions, y=mmr_scores, marker='x', linestyle='--', color='r', label='MMR Score')
+    sns.lineplot(x=positions, y=acc_sim, marker='o', linestyle='-', color='b', label='Accumulated similarity (avg)')
+    sns.lineplot(x=positions, y=mmr_scores, marker='x', linestyle='--', color='r', label='MMR score')
     sns.lineplot(x=positions, y=max_scores, marker='s', linestyle='-.', color='g',
-                 label='Max. Sim. to Prev. Selected Views')
-    plt.xlabel('k (Number of Selected Views)', fontsize=16)
-    plt.ylabel('Score', fontsize=16)
-    plt.title(f'Development of Scores over k ({name})', fontsize=18)
-    plt.legend(fontsize=14)
+                 label='Max. sim. to prev. selected Views')
+    plt.xlabel('k (Number of selected views)', fontsize=20)
+    plt.ylabel('Score', fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    #plt.title(f'Development of Scores over k ({name})', fontsize=18)
+    plt.legend(fontsize=16)
     plt.xticks(xtick_values)
 
     # Customize the spines
@@ -106,6 +107,16 @@ def plot_runtime_breakdown(file_paths):
     plt.tight_layout()
     plt.show()
 
+def round_runtimes(file_names):
+    for file in file_names:
+        with open(file, 'r') as f:
+            content = json.load(f)
+            runtimes = content.get('runtimes', {})
+            for key, value in runtimes.items():
+                content['runtimes'][key] = round(value)
+
+        with open(file.replace(".json", "-rounded.json"), 'w') as f:
+            json.dump(content, f, indent=4)
 
 if __name__ == '__main__':
     plot_score_evolution('results/complete_results/20250317-205146_results_order_mmr-leading-type.json',"Order, Leading", "20250317-205146")
@@ -113,6 +124,12 @@ if __name__ == '__main__':
     plot_score_evolution('results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json',
                          "BPI14 (Sep), Interact", "20250318-132650_bpi14_mmr_interacting_entities")
 
+
+    #file_names = ['results/complete_results/20250317-205146_results_order_mmr-leading-type.json', \
+    #    'results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json', \
+    #    'results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json']
+
+    #round_runtimes(file_names)
     # plot_runtime_breakdown(['results/complete_results/20250317-205146_results_order_mmr-leading-type.json',
     #                         'results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json',
     #                        'results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json'])
