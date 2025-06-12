@@ -1,4 +1,5 @@
 from src.util.similarity_measures import matching_similarities
+from src.view_generation.ekg_leading_type import batches
 
 views = [
     ({(1,2): [0,1,2], (2,3): [0,2], (3,4): [1,2]}, 3),
