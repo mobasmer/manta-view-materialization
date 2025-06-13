@@ -119,17 +119,22 @@ def round_runtimes(file_names):
             json.dump(content, f, indent=4)
 
 if __name__ == '__main__':
-    plot_score_evolution('results/complete_results/20250317-205146_results_order_mmr-leading-type.json',"Order, Leading", "20250317-205146")
-    plot_score_evolution('results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json', "BPI14 (Sep), Leading", "20250317-231201")
-    plot_score_evolution('results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json',
-                         "BPI14 (Sep), Interact", "20250318-132650_bpi14_mmr_interacting_entities")
+    #plot_score_evolution('results/complete_results/20250317-205146_results_order_mmr-leading-type.json',"Order, Leading", "20250317-205146")
+    #plot_score_evolution('results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json', "BPI14 (Sep), Leading", "20250317-231201")
+    #plot_score_evolution('results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json',
+    #                     "BPI14 (Sep), Interact", "20250318-132650_bpi14_mmr_interacting_entities")
+    #plot_score_evolution("results/complete_results/20250319-080157_order_mmr_interacting_entities_results.json", "Order-P1-Interact", "20250319-080157_order_mmr_interacting_entities")
+    #plot_score_evolution("results/complete_results/20250319-115511_bpi14_mmr_interacting_entities_results.json", "BPI14-P6-Interact", "20250319-115511_bpi14_mmr_interacting_entities")
+    #plot_score_evolution("results/complete_results/20250319-120450_bpi14_mmr_interacting_entities_results.json", "BPI14-P10-Interact", "20250319-120450_bpi14_mmr_interacting_entities")
+    plot_score_evolution('results/demonstration_results/20250317-231201_results_BPI14_mmr-leading-type.json',
+                         "BPI14 (Sep), Leading", "20250317-231201")
+    plot_score_evolution('results/demonstration_results/20250317-205146_results_order_mmr-leading-type.json',
+                         "Order, Leading", "20250317-205146")
+    plot_score_evolution("results/demonstration_results/20250613-151805_bpi14_mmr_interacting_entities_results.json",
+                         "BPI14 (Sep), Interact", "20250613-151805_bpi14_mmr_interacting_entities")
 
-
-    #file_names = ['results/complete_results/20250317-205146_results_order_mmr-leading-type.json', \
-    #    'results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json', \
-    #    'results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json']
-
-    #round_runtimes(file_names)
-    # plot_runtime_breakdown(['results/complete_results/20250317-205146_results_order_mmr-leading-type.json',
-    #                         'results/complete_results/20250317-231201_results_BPI14_mmr-leading-type.json',
-    #                        'results/complete_results/20250318-132650_bpi14_mmr_interacting_entities_results.json'])
+    file_names = ['results/demonstration_results/20250317-205146_results_order_mmr-leading-type.json',
+                    'results/demonstration_results/20250317-231201_results_BPI14_mmr-leading-type.json',
+                    'results/demonstration_results/20250613-151805_bpi14_mmr_interacting_entities_results.json']
+    round_runtimes(file_names)
+    plot_runtime_breakdown(file_names)
